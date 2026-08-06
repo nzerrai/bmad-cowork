@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: bmad-portal-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bmad
+      POSTGRES_PASSWORD: bmad
+      POSTGRES_DB: bmad_portal
+    ports:
+      - '${POSTGRES_PORT:-5433}:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U bmad -d bmad_portal']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

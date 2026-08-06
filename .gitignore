@@ -1,0 +1,18 @@
+.bmad-loop/runs/
+.bmad-loop/cache/
+.bmad-loop/policy.toml
+
+# Python (backend/, client/)
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Env files (may hold a local DATABASE_URL override, see CONTRIBUTING.md)
+.env
+.env.local
+
+# macOS
+.DS_Store
+
