@@ -1,5 +1,6 @@
-"""I/O matrix test: the initial migration creates only the migration-tracking
-schema against a fresh PostgreSQL 18.x instance, zero feature tables."""
+"""I/O matrix test: migrating to head against a fresh PostgreSQL 18.x
+instance adds exactly one feature table (`users`, Story 0.2 AC4) beyond the
+migration-tracking table."""
 
 from pathlib import Path
 
@@ -11,7 +12,7 @@ from alembic import command
 ALEMBIC_INI = Path(__file__).resolve().parent.parent / "alembic.ini"
 
 
-def test_initial_migration_creates_no_feature_tables() -> None:
+def test_migrations_create_only_the_users_table() -> None:
     cfg = Config(str(ALEMBIC_INI))
     # Guarantee a pristine slate before asserting: this runs against the same
     # shared dev database as `docker-compose.yml`/CONTRIBUTING.md, so a prior
@@ -25,4 +26,4 @@ def test_initial_migration_creates_no_feature_tables() -> None:
     finally:
         engine.dispose()
 
-    assert tables == ["alembic_version"]
+    assert sorted(tables) == ["alembic_version", "users"]

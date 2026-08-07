@@ -1,0 +1,15 @@
+"""Centralized JWT configuration, read from env with dev-friendly defaults.
+
+Per Story 0.2's Boundaries & Constraints, `JWT_SECRET_KEY` follows the same
+explicit-env-var convention as `DATABASE_URL`: CI sets it explicitly, local
+dev falls back to a documented (non-secret) default.
+"""
+
+import os
+
+# `or`, not the `os.environ.get(..., default)` form: an explicitly-set empty
+# string (e.g. a misconfigured CI/host) must still fall back to the dev
+# default, not sign tokens with an empty key.
+JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY") or "dev-only-insecure-secret-do-not-use-in-prod"
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRE_MINUTES = 60

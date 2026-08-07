@@ -10,7 +10,7 @@ For the full product picture (epics, requirements, architecture), see [`prjdocs/
 
 ## Status
 
-This repository is at **Epic 0: Project Scaffolding & Dev Environment** — each tier boots locally with a minimal boot-check entry point (health route, CLI status line, default page). No feature functionality (artifact indexing, Git-state sync, lease/claim logic, dashboard UI, authentication) has landed yet; those arrive in later epics/stories.
+This repository is at **Epic 0: Project Scaffolding & Dev Environment**. Story 0.1 gave each tier a minimal boot-check entry point (health route, CLI status line, default page). Story 0.2 added the Backend's auth/RBAC foundation: email/password registration and login, a JWT bearer session, and a `require_role` dependency demonstrated on one admin-only route (`GET /admin/ping`). No other feature functionality (artifact indexing, Git-state sync, lease/claim logic, dashboard UI, IHM login) has landed yet; those arrive in later epics/stories.
 
 ## Getting Started
 

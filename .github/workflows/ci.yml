@@ -20,6 +20,9 @@ jobs:
       # Explicit, rather than relying on alembic.ini's local-dev fallback
       # happening to match this job's service container below.
       DATABASE_URL: postgresql+psycopg://bmad:bmad@localhost:5433/bmad_portal
+      # Explicit, same rationale as DATABASE_URL above, rather than relying
+      # on app/config.py's local-dev fallback.
+      JWT_SECRET_KEY: ci-test-jwt-secret-key
     services:
       postgres:
         image: postgres:18

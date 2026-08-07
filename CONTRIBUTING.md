@@ -51,11 +51,48 @@ By default, Alembic connects to `postgresql+psycopg://bmad:bmad@localhost:5433/b
 DATABASE_URL="postgresql+psycopg://<user>:<pass>@<host>:<port>/<db>" uv run alembic upgrade head
 ```
 
-Lint and test (PostgreSQL from step 1 must still be running — `pytest` includes a migration test that connects to it):
+Lint and test (PostgreSQL from step 1 must still be running — `pytest` includes migration and auth tests that connect to it):
 
 ```bash
 uv run ruff check .
 uv run pytest
+```
+
+### Auth / RBAC env vars
+
+The Backend's auth substrate (Story 0.2) signs JWT bearer tokens with `JWT_SECRET_KEY`. Like `DATABASE_URL`, it follows the same explicit-env-var convention: CI sets it explicitly (`.github/workflows/ci.yml`), local dev falls back to a documented non-secret default (`dev-only-insecure-secret-do-not-use-in-prod`, see `backend/app/config.py` / `.env.example`). To override it locally:
+
+```bash
+JWT_SECRET_KEY="some-other-dev-secret" uv run uvicorn app.main:app --reload
+```
+
+### Auth walkthrough (curl)
+
+With the Backend running (`uv run uvicorn app.main:app --reload`) and PostgreSQL up, exercise register → login → the role-gated `/admin/ping` route:
+
+```bash
+# Register an admin and a developer
+curl -s -X POST localhost:8000/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"admin@example.com","password":"correct-horse","role":"admin"}'
+
+curl -s -X POST localhost:8000/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"dev@example.com","password":"correct-horse","role":"developer"}'
+
+# Log in as each, capture the bearer token
+ADMIN_TOKEN=$(curl -s -X POST localhost:8000/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"admin@example.com","password":"correct-horse"}' | python3 -c 'import json,sys; print(json.load(sys.stdin)["access_token"])')
+
+DEV_TOKEN=$(curl -s -X POST localhost:8000/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"dev@example.com","password":"correct-horse"}' | python3 -c 'import json,sys; print(json.load(sys.stdin)["access_token"])')
+
+# Admin-only route: 200 for the admin token, 403 for the developer token, 401 with no token
+curl -i -s localhost:8000/admin/ping -H "Authorization: Bearer $ADMIN_TOKEN" | head -1
+curl -i -s localhost:8000/admin/ping -H "Authorization: Bearer $DEV_TOKEN" | head -1
+curl -i -s localhost:8000/admin/ping | head -1
 ```
 
 ## 3. Client (Python agent)
