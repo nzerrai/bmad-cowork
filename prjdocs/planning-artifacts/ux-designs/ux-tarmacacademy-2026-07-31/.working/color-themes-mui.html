@@ -1,0 +1,296 @@
+<!--
+  Color Themes for BMAD Portal MVP - Artifact & Team Sync Hub
+  Governed by DESIGN.md: Colors, Typography, Components
+  MUI System - Multi-surface Internal/Commercial Portal
+-->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BMAD Portal - Color Themes</title>
+    <style>
+        :root {
+            /* Theme 1: Professional Tech - Trust & Clarity */
+            --theme-1-primary: #1976d2;
+            --theme-1-primary-dark: #1565c0;
+            --theme-1-secondary: #0288d1;
+            --theme-1-background: #f5f5f5;
+            --theme-1-surface: #ffffff;
+            --theme-1-error: #d32f2f;
+            --theme-1-success: #388e3c;
+            --theme-1-warning: #f57c00;
+            --theme-1-info: #0288d1;
+
+            /* Theme 2: Modern Dark - Developer Focused */
+            --theme-2-primary: #7c4dff;
+            --theme-2-primary-dark: #651fff;
+            --theme-2-secondary: #00bfa5;
+            --theme-2-background: #121212;
+            --theme-2-surface: #1e1e1e;
+            --theme-2-error: #cf6679;
+            --theme-2-success: #00c853;
+            --theme-2-warning: #ffd74f;
+            --theme-2-info: #40c4ff;
+
+            /* Theme 3: Enterprise Clean - Corporate Ready */
+            --theme-3-primary: #1976d2;
+            --theme-3-primary-dark: #0d47a1;
+            --theme-3-secondary: #424242;
+            --theme-3-background: #fafafa;
+            --theme-3-surface: #ffffff;
+            --theme-3-error: #d32f2f;
+            --theme-3-success: #2e7d32;
+            --theme-3-warning: #ed6c02;
+            --theme-3-info: #0288d1;
+
+            /* Theme 4: Vibrant Innovation - Commercial Ready */
+            --theme-4-primary: #6200ea;
+            --theme-4-primary-dark: #3700b3;
+            --theme-4-secondary: #03dac6;
+            --theme-4-background: #f8f9fa;
+            --theme-4-surface: #ffffff;
+            --theme-4-error: #b00020;
+            --theme-4-success: #00c853;
+            --theme-4-warning: #ffab00;
+            --theme-4-info: #018786;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #e0e0e0;
+        }
+
+        .theme-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .theme-card {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .theme-header {
+            padding: 16px;
+            color: white;
+        }
+
+        .theme-1 .theme-header { background: var(--theme-1-primary); }
+        .theme-2 .theme-header { background: var(--theme-2-primary); }
+        .theme-3 .theme-header { background: var(--theme-3-primary); }
+        .theme-4 .theme-header { background: var(--theme-4-primary); }
+
+        .theme-name {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0 0 4px 0;
+        }
+
+        .theme-register {
+            font-size: 13px;
+            opacity: 0.9;
+            margin: 0;
+        }
+
+        .theme-tokens {
+            padding: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .token-chip {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .token-primary { background: var(--theme-1-primary); color: white; }
+        .token-secondary { background: var(--theme-1-secondary); color: white; }
+        .token-success { background: var(--theme-1-success); color: white; }
+        .token-warning { background: var(--theme-1-warning); color: white; }
+        .token-error { background: var(--theme-1-error); color: white; }
+
+        .theme-2 .token-primary { background: var(--theme-2-primary); color: white; }
+        .theme-2 .token-secondary { background: var(--theme-2-secondary); color: white; }
+        .theme-2 .token-success { background: var(--theme-2-success); color: white; }
+        .theme-2 .token-warning { background: var(--theme-2-warning); color: #121212; }
+        .theme-2 .token-error { background: var(--theme-2-error); color: white; }
+
+        .theme-3 .token-primary { background: var(--theme-3-primary); color: white; }
+        .theme-3 .token-secondary { background: var(--theme-3-secondary); color: white; }
+        .theme-3 .token-success { background: var(--theme-3-success); color: white; }
+        .theme-3 .token-warning { background: var(--theme-3-warning); color: white; }
+        .theme-3 .token-error { background: var(--theme-3-error); color: white; }
+
+        .theme-4 .token-primary { background: var(--theme-4-primary); color: white; }
+        .theme-4 .token-secondary { background: var(--theme-4-secondary); color: #121212; }
+        .theme-4 .token-success { background: var(--theme-4-success); color: white; }
+        .theme-4 .token-warning { background: var(--theme-4-warning); color: #121212; }
+        .theme-4 .token-error { background: var(--theme-4-error); color: white; }
+
+        .theme-preview {
+            padding: 16px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .preview-card {
+            background: var(--theme-1-surface);
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+
+        .theme-2 .preview-card { background: var(--theme-2-surface); color: #e0e0e0; }
+        .theme-3 .preview-card { background: var(--theme-3-surface); }
+        .theme-4 .preview-card { background: var(--theme-4-surface); }
+
+        .preview-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin: 0 0 8px 0;
+        }
+
+        .preview-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-connected { background: var(--theme-1-success); }
+        .status-cached { background: var(--theme-1-warning); }
+        .status-risk { background: var(--theme-1-error); }
+
+        .theme-2 .status-connected { background: var(--theme-2-success); }
+        .theme-2 .status-cached { background: var(--theme-2-warning); }
+        .theme-2 .status-risk { background: var(--theme-2-error); }
+
+        .theme-3 .status-connected { background: var(--theme-3-success); }
+        .theme-3 .status-cached { background: var(--theme-3-warning); }
+        .theme-3 .status-risk { background: var(--theme-3-error); }
+
+        .theme-4 .status-connected { background: var(--theme-4-success); }
+        .theme-4 .status-cached { background: var(--theme-4-warning); }
+        .theme-4 .status-risk { background: var(--theme-4-error); }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center; margin-bottom: 30px;">BMAD Portal - Color Themes</h1>
+
+    <div class="theme-grid">
+        <!-- Theme 1: Professional Tech -->
+        <div class="theme-card theme-1">
+            <div class="theme-header">
+                <h3 class="theme-name">Professional Tech</h3>
+                <p class="theme-register">Trust & Clarity - Internal Ready</p>
+            </div>
+            <div class="theme-tokens">
+                <span class="token-chip token-primary">Primary #1976d2</span>
+                <span class="token-chip token-secondary">Secondary #0288d1</span>
+                <span class="token-chip token-success">Success #388e3c</span>
+                <span class="token-chip token-warning">Warning #f57c00</span>
+                <span class="token-chip token-error">Error #d32f2f</span>
+            </div>
+            <div class="theme-preview">
+                <div class="preview-card">
+                    <div class="preview-title">Sync Status</div>
+                    <div class="preview-status">
+                        <span class="status-dot status-connected"></span>
+                        <span>Connected / Live sync</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Theme 2: Modern Dark -->
+        <div class="theme-card theme-2">
+            <div class="theme-header">
+                <h3 class="theme-name">Modern Dark</h3>
+                <p class="theme-register">Developer Focused - Dark Mode</p>
+            </div>
+            <div class="theme-tokens">
+                <span class="token-chip token-primary">Primary #7c4dff</span>
+                <span class="token-chip token-secondary">Secondary #00bfa5</span>
+                <span class="token-chip token-success">Success #00c853</span>
+                <span class="token-chip token-warning">Warning #ffd74f</span>
+                <span class="token-chip token-error">Error #cf6679</span>
+            </div>
+            <div class="theme-preview">
+                <div class="preview-card">
+                    <div class="preview-title">Sync Status</div>
+                    <div class="preview-status">
+                        <span class="status-dot status-cached"></span>
+                        <span>Absent / Cached state</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Theme 3: Enterprise Clean -->
+        <div class="theme-card theme-3">
+            <div class="theme-header">
+                <h3 class="theme-name">Enterprise Clean</h3>
+                <p class="theme-register">Corporate Ready - Commercial Ready</p>
+            </div>
+            <div class="theme-tokens">
+                <span class="token-chip token-primary">Primary #1976d2</span>
+                <span class="token-chip token-secondary">Secondary #424242</span>
+                <span class="token-chip token-success">Success #2e7d32</span>
+                <span class="token-chip token-warning">Warning #ed6c02</span>
+                <span class="token-chip token-error">Error #d32f2f</span>
+            </div>
+            <div class="theme-preview">
+                <div class="preview-card">
+                    <div class="preview-title">Risk Signal</div>
+                    <div class="preview-status">
+                        <span class="status-dot status-risk"></span>
+                        <span>Story stale > 3 days</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Theme 4: Vibrant Innovation -->
+        <div class="theme-card theme-4">
+            <div class="theme-header">
+                <h3 class="theme-name">Vibrant Innovation</h3>
+                <p class="theme-register">Commercial Ready - Modern SaaS</p>
+            </div>
+            <div class="theme-tokens">
+                <span class="token-chip token-primary">Primary #6200ea</span>
+                <span class="token-chip token-secondary">Secondary #03dac6</span>
+                <span class="token-chip token-success">Success #00c853</span>
+                <span class="token-chip token-warning">Warning #ffab00</span>
+                <span class="token-chip token-error">Error #b00020</span>
+            </div>
+            <div class="theme-preview">
+                <div class="preview-card">
+                    <div class="preview-title">Sprint Progress</div>
+                    <div class="preview-status">
+                        <span class="status-dot status-connected"></span>
+                        <span>8/12 Stories Done</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

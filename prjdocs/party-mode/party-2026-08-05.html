@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Party Mode — BMad Portal Hub — 2026-08-05</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #101014;
+    --panel: #17171d;
+    --ink: #e9e7f0;
+    --dim: #9490a8;
+    --line: #2a2a34;
+    --accent: #f2c14e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: radial-gradient(1200px 600px at 50% -10%, #1b1b24 0%, var(--bg) 60%);
+    color: var(--ink);
+    font-family: ui-monospace, "SF Mono", Consolas, "Courier New", monospace;
+    line-height: 1.6;
+    padding: 3rem 1.25rem 6rem;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 3rem; }
+  header .kicker { color: var(--accent); letter-spacing: .3em; font-size: .7rem; text-transform: uppercase; }
+  header h1 { font-size: 1.6rem; margin: .5rem 0 .25rem; font-weight: 600; }
+  header .sub { color: var(--dim); font-size: .85rem; }
+
+  .table-svg { display: block; margin: 0 auto 2.5rem; opacity: .9; }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1.1rem 1.3rem;
+    margin-bottom: 1rem;
+    position: relative;
+    animation: rise .5s ease both;
+  }
+  .card + .card { margin-top: .85rem; }
+  .who { display: flex; align-items: center; gap: .55rem; margin-bottom: .4rem; }
+  .who .icon { font-size: 1.15rem; }
+  .who .name { font-weight: 700; }
+  .who .title { color: var(--dim); font-size: .75rem; }
+  .line { color: var(--ink); font-size: .92rem; }
+  .stage { color: var(--dim); font-style: italic; font-size: .82rem; }
+
+  .winston .name { color: #8fb8ff; }
+  .sally .name   { color: #ff9ecb; }
+  .amelia .name  { color: #7be8c0; }
+  .john .name    { color: #f2c14e; }
+
+  .divider {
+    text-align: center;
+    color: var(--dim);
+    letter-spacing: .4em;
+    font-size: .7rem;
+    margin: 2.2rem 0;
+  }
+
+  .outcomes {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1.4rem 1.5rem;
+  }
+  .outcomes h2 { font-size: .95rem; text-transform: uppercase; letter-spacing: .15em; color: var(--accent); margin-top: 0; }
+  .outcomes ul { margin: 0; padding-left: 1.1rem; }
+  .outcomes li { margin-bottom: .55rem; font-size: .88rem; }
+
+  footer { text-align: center; color: var(--dim); font-size: .75rem; margin-top: 3rem; }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .card:nth-child(2) { animation-delay: .05s; }
+  .card:nth-child(3) { animation-delay: .1s; }
+  .card:nth-child(4) { animation-delay: .15s; }
+  .card:nth-child(5) { animation-delay: .2s; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="kicker">BMad Party Mode</div>
+    <h1>Autour de la table — BMad Portal Hub</h1>
+    <div class="sub">Winston · Sally · Amelia · John — 5 août 2026</div>
+  </header>
+
+  <svg class="table-svg" width="220" height="70" viewBox="0 0 220 70" fill="none">
+    <ellipse cx="110" cy="45" rx="95" ry="18" stroke="#3a3a46" stroke-width="1.5"/>
+    <circle cx="30" cy="30" r="7" fill="#8fb8ff"/>
+    <circle cx="80" cy="18" r="7" fill="#ff9ecb"/>
+    <circle cx="150" cy="18" r="7" fill="#7be8c0"/>
+    <circle cx="195" cy="32" r="7" fill="#f2c14e"/>
+  </svg>
+
+  <div class="card winston">
+    <div class="who"><span class="icon">🏗️</span><span class="name">Winston</span><span class="title">— Architecte</span></div>
+    <div class="line">« L'identifiant technique, c'est le chemin complet — host/org/repo. Ça ne coûte rien à poser maintenant, ça coûte cher à retrofit après. »</div>
+  </div>
+
+  <div class="card john">
+    <div class="who"><span class="icon">📋</span><span class="name">John</span><span class="title">— Product Manager</span></div>
+    <div class="line">« Avant qu'on architecture pour deux orgs différentes : combien de fois cette collision arrive vraiment dans la vie de <em>cette</em> équipe ? »</div>
+  </div>
+
+  <div class="card amelia">
+    <div class="who"><span class="icon">💻</span><span class="name">Amelia</span><span class="title">— Dev</span></div>
+    <div class="line">« Pas un booléen. Un statut à trois valeurs — <code>pending</code> / <code>active</code> / <code>access_revoked</code>. Une colonne, toute l'histoire. »</div>
+  </div>
+
+  <div class="card sally">
+    <div class="who"><span class="icon">🎨</span><span class="name">Sally</span><span class="title">— UX</span></div>
+    <div class="line">« Ça, c'est tout ce dont j'avais besoin. » <span class="stage">(sourire)</span></div>
+  </div>
+
+  <div class="card john">
+    <div class="who"><span class="icon">📋</span><span class="name">John</span><span class="title">— Product Manager</span></div>
+    <div class="line">« Zéro-config au premier lancement — c'est un pari, pas un besoin observé. Pas disqualifiant. Mais on l'appelle par son nom, et on reste minimal tant qu'on n'a pas vu la douleur. »</div>
+  </div>
+
+  <div class="divider">◆ ◆ ◆</div>
+
+  <div class="outcomes">
+    <h2>Ce qui reste de la table</h2>
+    <ul>
+      <li>ID technique = chemin complet <code>host/org/repo</code> (unicité en base) — nom affiché = nom court, badge en cas d'ambiguïté</li>
+      <li>Statut d'accès à 3 valeurs (<code>pending</code> / <code>active</code> / <code>access_revoked</code>), jamais un simple booléen</li>
+      <li>Lien d'action scoped au provider unique du projet + fallback texte générique — pas de détection multi-provider en MVP</li>
+      <li>Zéro-config au premier lancement : pari de design assumé, gardé minimal tant que non validé sur le terrain</li>
+      <li>État repo local en piggyback sur le heartbeat WebSocket existant (AD-002) — hook Git local pour l'envoi immédiat, tick 10s en filet de sécurité</li>
+      <li>Une seule source de vérité (l'état brut du client) alimentant deux consommateurs : la carte contributeur (FR5) et les signaux de risque agrégés (FR10 / Epic 4)</li>
+    </ul>
+  </div>
+
+  <footer>La table se disperse. À la prochaine, Nono.</footer>
+
+</div>
+</body>
+</html>

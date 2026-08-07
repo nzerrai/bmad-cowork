@@ -1,0 +1,411 @@
+<meta charset="UTF-8" />
+<title>Sprint &amp; Claim Management — BMad Portal</title>
+<style>
+  :root {
+    --bg: #0a1120;
+    --bg-grid: #0d1526;
+    --surface: #121b30;
+    --surface-2: #182544;
+    --surface-3: #1c2b4d;
+    --border: #24314f;
+    --border-soft: #1b2843;
+    --text: #e7ecf6;
+    --text-dim: #96a3c2;
+    --text-faint: #5f6d8f;
+
+    --emerald: #34d399;
+    --emerald-bg: rgba(52, 211, 153, 0.12);
+    --amber: #f5a524;
+    --amber-bg: rgba(245, 165, 36, 0.13);
+    --rose: #fb6478;
+    --rose-bg: rgba(251, 100, 120, 0.14);
+    --cyan: #38bdf8;
+    --cyan-bg: rgba(56, 189, 248, 0.12);
+    --indigo: #8b8cf8;
+    --indigo-bg: rgba(139, 140, 248, 0.14);
+    --slate: #7885a3;
+    --slate-bg: rgba(120, 133, 163, 0.14);
+
+    --sans: ui-sans-serif, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { margin: 0; padding: 0; background: var(--bg); }
+
+  body {
+    font-family: var(--sans);
+    color: var(--text);
+    min-height: 100vh;
+    background-image:
+      linear-gradient(var(--bg-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
+    background-size: 48px 48px;
+    background-attachment: fixed;
+  }
+
+  a { color: inherit; }
+
+  .shell {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* ---- Header ---- */
+  .page-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .page-head h1 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0 0 4px;
+  }
+  .page-sub {
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .status-bar {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 12.5px;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+  .status-bar .live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 6px var(--cyan);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .status-bar .live-dot { animation: pulse 2s ease-in-out infinite; }
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  /* ---- Summary strip ---- */
+  .summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 720px) {
+    .summary { grid-template-columns: repeat(2, 1fr); }
+  }
+  .summary-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .summary-num {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+  }
+  .summary-num.indigo { color: var(--indigo); }
+  .summary-num.emerald { color: var(--emerald); }
+  .summary-num.slate { color: var(--slate); }
+  .summary-num.rose { color: var(--rose); }
+  .summary-label {
+    margin-top: 4px;
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-faint);
+  }
+
+  /* ---- Table card ---- */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .table-wrap { overflow-x: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+    min-width: 860px;
+  }
+
+  thead th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-faint);
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  tbody tr { border-bottom: 1px solid var(--border-soft); }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr.dim { opacity: 0.55; }
+
+  td {
+    padding: 13px 16px;
+    vertical-align: middle;
+  }
+
+  .us-id {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-faint);
+  }
+  .us-title {
+    font-weight: 500;
+    color: var(--text);
+    margin-top: 2px;
+    max-width: 260px;
+  }
+
+  .claimant {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .claimant-avatar {
+    flex: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: #0a1120;
+  }
+  .claimant-name { font-size: 13px; color: var(--text); }
+  .claimant-none { color: var(--text-faint); font-style: normal; }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px 4px 8px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .pill .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 0 3px currentColor;
+  }
+  .pill.emerald { background: var(--emerald-bg); color: var(--emerald); }
+  .pill.amber   { background: var(--amber-bg);   color: var(--amber); }
+  .pill.rose    { background: var(--rose-bg);    color: var(--rose); }
+  .pill.cyan    { background: var(--cyan-bg);    color: var(--cyan); }
+  .pill.indigo  { background: var(--indigo-bg);  color: var(--indigo); }
+  .pill.slate   { background: var(--slate-bg);   color: var(--slate); }
+
+  .lease {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 12.5px;
+  }
+  .lease.active { color: var(--text); }
+  .lease.faint { color: var(--text-faint); }
+
+  .row-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  .btn {
+    appearance: none;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-dim);
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 11px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn:hover { color: var(--text); border-color: var(--text-faint); }
+  .btn:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+  .btn.primary {
+    background: var(--indigo-bg);
+    border-color: rgba(139, 140, 248, 0.35);
+    color: var(--indigo);
+  }
+  .btn.primary:hover { color: #c3c4fb; }
+  .btn.warn {
+    background: var(--amber-bg);
+    border-color: rgba(245, 165, 36, 0.35);
+    color: var(--amber);
+  }
+  .btn.warn:hover { color: #ffcb7a; }
+
+  .reconnecting {
+    font-size: 11.5px;
+    color: var(--rose);
+    font-family: var(--mono);
+  }
+
+  ::selection { background: var(--indigo-bg); color: var(--text); }
+</style>
+
+<div class="shell">
+  <div class="page-head">
+    <div>
+      <h1>Sprint &amp; Claim Management</h1>
+      <div class="page-sub">Sprint 14 · Portal Hub — leases et état de synchronisation par User Story</div>
+    </div>
+    <span class="status-bar"><span class="live-dot"></span>WebSocket connecté</span>
+  </div>
+
+  <div class="summary">
+    <div class="summary-item">
+      <div class="summary-num indigo">2</div>
+      <div class="summary-label">Claimées</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-num slate">2</div>
+      <div class="summary-label">Disponibles</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-num rose">1</div>
+      <div class="summary-label">Expirée · auto-libérée</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-num emerald">3</div>
+      <div class="summary-label">Stories terminées / 8</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>User Story</th>
+            <th>Claimée par</th>
+            <th>Lease</th>
+            <th>État Git</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div class="us-id">US-142</div>
+              <div class="us-title">Panel Fiche Contributeur — UI</div>
+            </td>
+            <td>
+              <div class="claimant">
+                <span class="claimant-avatar" style="background: linear-gradient(160deg, var(--indigo), #5860d9);">YB</span>
+                <span class="claimant-name">Yasmine Belkacem</span>
+              </div>
+            </td>
+            <td><span class="lease active">42:18 restant</span></td>
+            <td><span class="pill amber"><span class="dot"></span>Drift — 4/11</span></td>
+            <td>
+              <div class="row-actions">
+                <button type="button" class="btn warn">Re-sync</button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="us-id">US-118</div>
+              <div class="us-title">Résilience heartbeat WebSocket (AD-002)</div>
+            </td>
+            <td>
+              <div class="claimant">
+                <span class="claimant-avatar" style="background: linear-gradient(160deg, var(--cyan), #1c7fb0);">AM</span>
+                <span class="claimant-name">Amina Meddour</span>
+              </div>
+            </td>
+            <td><span class="lease active">12:03 restant</span></td>
+            <td><span class="pill emerald"><span class="dot"></span>Synchronisé</span></td>
+            <td>
+              <div class="row-actions">
+                <button type="button" class="btn">Release</button>
+              </div>
+            </td>
+          </tr>
+          <tr class="dim">
+            <td>
+              <div class="us-id">US-101</div>
+              <div class="us-title">Réglage backoff de retry de sync</div>
+            </td>
+            <td><span class="claimant-none">— aucun claimant</span></td>
+            <td><span class="pill rose"><span class="dot"></span>Expirée · auto-libérée</span></td>
+            <td><span class="pill slate"><span class="dot"></span>Idle</span></td>
+            <td>
+              <div class="row-actions">
+                <button type="button" class="btn primary">Claim</button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="us-id">US-156</div>
+              <div class="us-title">Détail du score de compliance par section</div>
+            </td>
+            <td><span class="claimant-none">— disponible</span></td>
+            <td><span class="lease faint">—</span></td>
+            <td><span class="pill slate"><span class="dot"></span>Idle</span></td>
+            <td>
+              <div class="row-actions">
+                <button type="button" class="btn primary">Claim</button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="us-id">US-089</div>
+              <div class="us-title">Bannière d'onboarding auto-join</div>
+            </td>
+            <td><span class="claimant-none">— disponible</span></td>
+            <td><span class="lease faint">—</span></td>
+            <td>
+              <span class="reconnecting">Reconnexion…</span>
+            </td>
+            <td>
+              <div class="row-actions">
+                <button type="button" class="btn primary" disabled style="opacity:.5; cursor:not-allowed;">Claim</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

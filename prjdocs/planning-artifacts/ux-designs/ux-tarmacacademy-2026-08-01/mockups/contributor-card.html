@@ -1,0 +1,568 @@
+<meta charset="UTF-8" />
+<title>Fiche Contributeur — BMad Portal</title>
+<style>
+  :root {
+    --bg: #0a1120;
+    --bg-grid: #0d1526;
+    --surface: #121b30;
+    --surface-2: #182544;
+    --surface-3: #1c2b4d;
+    --border: #24314f;
+    --border-soft: #1b2843;
+    --text: #e7ecf6;
+    --text-dim: #96a3c2;
+    --text-faint: #5f6d8f;
+
+    --emerald: #34d399;
+    --emerald-bg: rgba(52, 211, 153, 0.12);
+    --amber: #f5a524;
+    --amber-bg: rgba(245, 165, 36, 0.13);
+    --rose: #fb6478;
+    --rose-bg: rgba(251, 100, 120, 0.14);
+    --cyan: #38bdf8;
+    --cyan-bg: rgba(56, 189, 248, 0.12);
+    --indigo: #8b8cf8;
+    --indigo-bg: rgba(139, 140, 248, 0.14);
+    --slate: #7885a3;
+    --slate-bg: rgba(120, 133, 163, 0.14);
+
+    --sans: ui-sans-serif, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+  }
+
+  body {
+    font-family: var(--sans);
+    color: var(--text);
+    min-height: 100vh;
+    background-image:
+      linear-gradient(var(--bg-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
+    background-size: 48px 48px;
+    background-attachment: fixed;
+  }
+
+  a { color: inherit; }
+
+  .shell {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* ---- Breadcrumb ---- */
+  .crumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-faint);
+    margin-bottom: 20px;
+    letter-spacing: 0.01em;
+  }
+  .crumb a { color: var(--text-dim); text-decoration: none; }
+  .crumb a:hover { color: var(--text); }
+  .crumb .sep { opacity: 0.5; }
+  .crumb .current { color: var(--text); }
+
+  /* ---- Identity header ---- */
+  .identity {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 24px;
+    background: linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.02) inset, 0 12px 30px -18px rgba(0,0,0,0.6);
+  }
+
+  .avatar {
+    flex: none;
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    background: linear-gradient(160deg, var(--indigo), #5860d9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 18px;
+    color: #0a1120;
+    letter-spacing: 0.02em;
+  }
+
+  .identity-main { flex: 1; min-width: 0; }
+
+  .identity-name {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .identity-name h1 {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+
+  .identity-role {
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .identity-meta {
+    margin-top: 6px;
+    font-size: 12.5px;
+    color: var(--text-faint);
+    font-family: var(--mono);
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px 4px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .pill .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 0 3px currentColor;
+    filter: opacity(0.9);
+  }
+  .pill.emerald { background: var(--emerald-bg); color: var(--emerald); }
+  .pill.amber   { background: var(--amber-bg);   color: var(--amber); }
+  .pill.rose    { background: var(--rose-bg);    color: var(--rose); }
+  .pill.cyan    { background: var(--cyan-bg);    color: var(--cyan); }
+  .pill.indigo  { background: var(--indigo-bg);  color: var(--indigo); }
+  .pill.slate   { background: var(--slate-bg);   color: var(--slate); }
+
+  /* ---- Section shell ---- */
+  .grid {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 720px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px 20px;
+  }
+  .card.span-2 { grid-column: 1 / -1; }
+
+  .card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .card-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+  }
+
+  .card-head-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .freshness {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    color: var(--text-faint);
+    font-family: var(--mono);
+  }
+  .live-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 6px var(--cyan);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .live-dot { animation: pulse 2s ease-in-out infinite; }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* ---- Repo state card ---- */
+  .repo-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--rose-bg);
+    border: 1px solid rgba(251, 100, 120, 0.28);
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: #ffd6dc;
+    line-height: 1.45;
+  }
+  .repo-banner strong { color: var(--rose); }
+
+  .repo-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 0;
+    border-top: 1px solid var(--border-soft);
+    font-size: 13.5px;
+  }
+  .repo-row:first-of-type { border-top: none; }
+  .repo-row .label { color: var(--text-faint); }
+  .repo-row .value {
+    font-family: var(--mono);
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+  .repo-row .value.branch { color: var(--cyan); }
+
+  .diff-counts {
+    display: inline-flex;
+    gap: 8px;
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+  }
+  .diff-counts .ahead { color: var(--emerald); }
+  .diff-counts .behind { color: var(--amber); }
+
+  .repo-id {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-soft);
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--text-faint);
+    word-break: break-all;
+  }
+
+  /* ---- Access card ---- */
+  .access-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-top: 1px solid var(--border-soft);
+    font-size: 13.5px;
+  }
+  .access-row:first-of-type { border-top: none; }
+  .access-row .label { color: var(--text-faint); }
+  .access-row .value { color: var(--text); }
+
+  /* ---- Linked projects ---- */
+  .proj-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .proj-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-sm);
+  }
+  .proj-status-dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 8px currentColor;
+  }
+  .proj-item.emerald .proj-status-dot,
+  .proj-item.emerald .proj-name { color: var(--emerald); }
+  .proj-item.amber .proj-status-dot,
+  .proj-item.amber .proj-name { color: var(--amber); }
+  .proj-item.cyan .proj-status-dot,
+  .proj-item.cyan .proj-name { color: var(--cyan); }
+
+  .proj-body { flex: 1; min-width: 0; }
+  .proj-name { font-size: 13.5px; font-weight: 600; color: var(--text); }
+  .proj-id {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .proj-role {
+    flex: none;
+    font-size: 11px;
+    color: var(--text-dim);
+    background: var(--surface-3);
+    border: 1px solid var(--border-soft);
+    padding: 3px 8px;
+    border-radius: 999px;
+  }
+
+  /* ---- Activity feed ---- */
+  .feed {
+    display: flex;
+    flex-direction: column;
+  }
+  .feed-item {
+    display: flex;
+    gap: 12px;
+    padding: 12px 0;
+    border-top: 1px solid var(--border-soft);
+  }
+  .feed-item:first-child { border-top: none; padding-top: 2px; }
+  .feed-icon {
+    flex: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    margin-top: 1px;
+  }
+  .feed-icon.emerald { background: var(--emerald-bg); color: var(--emerald); }
+  .feed-icon.indigo  { background: var(--indigo-bg); color: var(--indigo); }
+  .feed-icon.rose    { background: var(--rose-bg); color: var(--rose); }
+  .feed-icon.cyan    { background: var(--cyan-bg); color: var(--cyan); }
+
+  .feed-body { flex: 1; min-width: 0; }
+  .feed-text { font-size: 13.5px; color: var(--text); line-height: 1.4; }
+  .feed-text code {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--cyan);
+    background: rgba(56, 189, 248, 0.08);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+  .feed-time {
+    font-size: 11.5px;
+    color: var(--text-faint);
+    margin-top: 3px;
+    font-family: var(--mono);
+  }
+
+  .feed-more {
+    margin-top: 4px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-soft);
+    background: none;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    color: var(--cyan);
+    font-family: var(--sans);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+  }
+  .feed-more:hover { color: var(--text); }
+  .feed-more:focus-visible {
+    outline: 2px solid var(--cyan);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection { background: var(--indigo-bg); color: var(--text); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .card, .identity { transition: border-color 0.15s ease; }
+  }
+</style>
+
+<div class="shell">
+  <div class="crumb">
+    <a href="#">Équipe</a>
+    <span class="sep">/</span>
+    <span class="current">Yasmine Belkacem</span>
+  </div>
+
+  <div class="identity">
+    <div class="avatar">YB</div>
+    <div class="identity-main">
+      <div class="identity-name">
+        <h1>Yasmine Belkacem</h1>
+        <span class="identity-role">Contributrice — Backend</span>
+        <span class="pill emerald"><span class="dot"></span>Accès actif</span>
+      </div>
+      <div class="identity-meta">yasmine.belkacem · membre depuis le 12 mars 2026</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">État du dépôt</span>
+        <span class="card-head-right">
+          <span class="freshness"><span class="live-dot"></span>Mis à jour à l'instant</span>
+          <span class="pill rose"><span class="dot"></span>Conflit</span>
+        </span>
+      </div>
+
+      <div class="repo-banner">
+        <strong>Conflit détecté</strong>&nbsp;— rebase en cours sur <code style="font-family: var(--mono); color: #ffd6dc; background: rgba(0,0,0,0.15); padding: 1px 5px; border-radius: 4px;">feature/auto-join-ux</code>. Bloqué depuis 3&nbsp;h.
+      </div>
+
+      <div class="repo-row">
+        <span class="label">Branche</span>
+        <span class="value branch">feature/auto-join-ux</span>
+      </div>
+      <div class="repo-row">
+        <span class="label">Avance / retard</span>
+        <span class="value">
+          <span class="diff-counts">
+            <span class="ahead">&#8593; 4</span>
+            <span class="behind">&#8595; 11</span>
+          </span>
+        </span>
+      </div>
+      <div class="repo-row">
+        <span class="label">Statut local</span>
+        <span class="value">non&nbsp;committé (dirty)</span>
+      </div>
+      <div class="repo-row">
+        <span class="label">Dernière activité</span>
+        <span class="value">il y a 6 min</span>
+      </div>
+
+      <div class="repo-id">github.com/tarmacacademy/portal-hub</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Accès &amp; identité</span>
+      </div>
+      <div class="access-row">
+        <span class="label">Statut</span>
+        <span class="value"><span class="pill emerald"><span class="dot"></span>active</span></span>
+      </div>
+      <div class="access-row">
+        <span class="label">Accordé le</span>
+        <span class="value">12 mars 2026</span>
+      </div>
+      <div class="access-row">
+        <span class="label">Rôle</span>
+        <span class="value">Contributrice</span>
+      </div>
+      <div class="access-row">
+        <span class="label">Dernière vérification</span>
+        <span class="value">il y a 2 j</span>
+      </div>
+      <div class="access-row">
+        <span class="label">Provider</span>
+        <span class="value">GitHub</span>
+      </div>
+    </div>
+
+    <div class="card span-2">
+      <div class="card-head">
+        <span class="card-title">Projets liés</span>
+      </div>
+      <div class="proj-list">
+        <div class="proj-item rose">
+          <span class="proj-status-dot"></span>
+          <div class="proj-body">
+            <div class="proj-name">Portal Hub</div>
+            <div class="proj-id">github.com/tarmacacademy/portal-hub</div>
+          </div>
+          <span class="proj-role">Backend</span>
+        </div>
+        <div class="proj-item emerald">
+          <span class="proj-status-dot"></span>
+          <div class="proj-body">
+            <div class="proj-name">Tarmac API</div>
+            <div class="proj-id">gitlab.com/tarmacacademy/tarmac-api</div>
+          </div>
+          <span class="proj-role">Mainteneuse</span>
+        </div>
+        <div class="proj-item cyan">
+          <span class="proj-status-dot"></span>
+          <div class="proj-body">
+            <div class="proj-name">Design Tokens</div>
+            <div class="proj-id">github.com/tarmacacademy/design-tokens</div>
+          </div>
+          <span class="proj-role">Contributrice</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card span-2">
+      <div class="card-head">
+        <span class="card-title">Activité récente</span>
+      </div>
+      <div class="feed">
+        <div class="feed-item">
+          <div class="feed-icon rose">&#9888;</div>
+          <div class="feed-body">
+            <div class="feed-text">Conflit de synchronisation détecté sur <code>feature/auto-join-ux</code></div>
+            <div class="feed-time">il y a 6 min</div>
+          </div>
+        </div>
+        <div class="feed-item">
+          <div class="feed-icon indigo">&#9670;</div>
+          <div class="feed-body">
+            <div class="feed-text">A réclamé la story <code>AD-002 · Heartbeat WebSocket</code></div>
+            <div class="feed-time">il y a 1 h</div>
+          </div>
+        </div>
+        <div class="feed-item">
+          <div class="feed-icon emerald">&#8593;</div>
+          <div class="feed-body">
+            <div class="feed-text">Push de 4 commits sur <code>feature/auto-join-ux</code></div>
+            <div class="feed-time">il y a 2 h</div>
+          </div>
+        </div>
+        <div class="feed-item">
+          <div class="feed-icon cyan">&#8644;</div>
+          <div class="feed-body">
+            <div class="feed-text">Synchronisation réussie sur <code>tarmac-api</code></div>
+            <div class="feed-time">hier, 18:42</div>
+          </div>
+        </div>
+      </div>
+      <button type="button" class="feed-more">Charger plus</button>
+    </div>
+  </div>
+</div>

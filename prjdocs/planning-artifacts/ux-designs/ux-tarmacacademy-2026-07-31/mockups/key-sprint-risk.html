@@ -1,0 +1,479 @@
+<!--
+  Key Screen: Sprint & Ceremony Dashboard + Risk & Quality Signals - BMAD Portal MVP
+  Governed by EXPERIENCE.md: Key Flows, Component Patterns, State Patterns
+  Governed by DESIGN.md: Components, Colors, Layout & Spacing
+  MUI System - Multi-surface Portal
+-->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BMAD Portal - Sprint & Risk Dashboard</title>
+    <style>
+        :root {
+            --mui-primary: #1976d2;
+            --mui-primary-dark: #1565c0;
+            --mui-background: #f5f5f5;
+            --mui-surface: #ffffff;
+            --mui-error: #d32f2f;
+            --mui-success: #388e3c;
+            --mui-warning: #f57c00;
+            --mui-info: #0288d1;
+            --mui-text-primary: #212121;
+            --mui-text-secondary: #757575;
+            --mui-border: #e0e0e0;
+        }
+
+        body {
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: var(--mui-background);
+            color: var(--mui-text-primary);
+            line-height: 1.5;
+        }
+
+        .device-frame {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .view-header {
+            background: var(--mui-surface);
+            border-bottom: 1px solid var(--mui-border);
+            padding: 20px 24px;
+            margin-bottom: 24px;
+        }
+
+        .view-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0 0 8px 0;
+        }
+
+        .view-subtitle {
+            font-size: 14px;
+            color: var(--mui-text-secondary);
+            margin: 0;
+        }
+
+        .dashboard-split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .card {
+            background: var(--mui-surface);
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--mui-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        /* Sprint Dashboard Styles */
+        .sprint-meta {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 20px;
+            padding: 12px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .sprint-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .sprint-meta-label {
+            color: var(--mui-text-secondary);
+        }
+
+        .sprint-meta-value {
+            font-weight: 500;
+        }
+
+        .progress-container {
+            margin-bottom: 20px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .progress-label {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .progress-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--mui-primary);
+        }
+
+        .progress-bar {
+            background: #e0e0e0;
+            border-radius: 4px;
+            height: 12px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, var(--mui-success), #66bb6a);
+            height: 100%;
+            border-radius: 4px;
+        }
+
+        .ceremonies-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .ceremony-item {
+            padding: 12px 0;
+            border-bottom: 1px solid var(--mui-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ceremony-item:last-child {
+            border-bottom: none;
+        }
+
+        .ceremony-name {
+            font-size: 13px;
+            font-weight: 500;
+            margin: 0 0 4px 0;
+        }
+
+        .ceremony-date {
+            font-size: 12px;
+            color: var(--mui-text-secondary);
+        }
+
+        .ceremony-status {
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .ceremony-upcoming {
+            background: #e3f2fd;
+            color: var(--mui-info);
+        }
+
+        .ceremony-completed {
+            background: #e8f5e9;
+            color: var(--mui-success);
+        }
+
+        .ceremony-missed {
+            background: #ffebee;
+            color: var(--mui-error);
+        }
+
+        /* Risk & Quality Signals Styles */
+        .risk-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .risk-metric {
+            background: #f9f9f9;
+            border-radius: 6px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .risk-metric-value {
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0 0 4px 0;
+        }
+
+        .risk-metric-label {
+            font-size: 12px;
+            color: var(--mui-text-secondary);
+            margin: 0;
+        }
+
+        .risk-metric-value.error { color: var(--mui-error); }
+        .risk-metric-value.warning { color: var(--mui-warning); }
+        .risk-metric-value.success { color: var(--mui-success); }
+
+        .signal-item {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .signal-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .signal-item.error {
+            background: #ffebee;
+            border-left: 3px solid var(--mui-error);
+        }
+
+        .signal-item.warning {
+            background: #fff3e0;
+            border-left: 3px solid var(--mui-warning);
+        }
+
+        .signal-item.info {
+            background: #e3f2fd;
+            border-left: 3px solid var(--mui-info);
+        }
+
+        .signal-content {
+            flex: 1;
+        }
+
+        .signal-title {
+            font-size: 13px;
+            font-weight: 600;
+            margin: 0 0 4px 0;
+        }
+
+        .signal-desc {
+            font-size: 12px;
+            color: var(--mui-text-secondary);
+            margin: 0;
+        }
+
+        .signal-time {
+            font-size: 11px;
+            color: var(--mui-text-secondary);
+            white-space: nowrap;
+            margin-left: 12px;
+        }
+
+        .quality-gates {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--mui-border);
+        }
+
+        .gate-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--mui-border);
+            font-size: 13px;
+        }
+
+        .gate-item:last-child {
+            border-bottom: none;
+        }
+
+        .gate-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+        }
+
+        .gate-pass {
+            color: var(--mui-success);
+        }
+
+        .gate-fail {
+            color: var(--mui-error);
+        }
+
+        .gate-pending {
+            color: var(--mui-warning);
+        }
+
+        .mock-caption {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: var(--mui-text-secondary);
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="device-frame">
+        <div class="view-header">
+            <h1 class="view-title">Dashboard Sprint & Signaux de Risque</h1>
+            <p class="view-subtitle">Progression des sprints, cérémonies, signaux de risque et quality gates déterministes</p>
+        </div>
+
+        <div class="dashboard-split">
+            <!-- Sprint Dashboard -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Sprint Actuel #42</h3>
+                    <span style="font-size: 13px; color: var(--mui-info);">En cours</span>
+                </div>
+                <div class="card-body">
+                    <div class="sprint-meta">
+                        <div class="sprint-meta-item">
+                            <span class="sprint-meta-label">Début:</span>
+                            <span class="sprint-meta-value">2026-07-28</span>
+                        </div>
+                        <div class="sprint-meta-item">
+                            <span class="sprint-meta-label">Fin:</span>
+                            <span class="sprint-meta-value">2026-08-03</span>
+                        </div>
+                        <div class="sprint-meta-item">
+                            <span class="sprint-meta-label">Objectif:</span>
+                            <span class="sprint-meta-value">Portal MVP Core</span>
+                        </div>
+                    </div>
+
+                    <div class="progress-container">
+                        <div class="progress-header">
+                            <span class="progress-label">Progression des Stories</span>
+                            <span class="progress-value">8/12 (67%)</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 67%;"></div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 20px;">
+                        <h4 style="font-size: 14px; font-weight: 600; margin: 0 0 12px 0;">Cérémonies</h4>
+                        <ul class="ceremonies-list">
+                            <li class="ceremony-item">
+                                <div>
+                                    <div class="ceremony-name">Sprint Planning</div>
+                                    <div class="ceremony-date">2026-07-27 à 10:00</div>
+                                </div>
+                                <span class="ceremony-status ceremony-completed">Terminée</span>
+                            </li>
+                            <li class="ceremony-item">
+                                <div>
+                                    <div class="ceremony-name">Daily Standup</div>
+                                    <div class="ceremony-date">2026-07-31 à 09:30</div>
+                                </div>
+                                <span class="ceremony-status ceremony-completed">Terminée</span>
+                            </li>
+                            <li class="ceremony-item">
+                                <div>
+                                    <div class="ceremony-name">Sprint Review</div>
+                                    <div class="ceremony-date">2026-08-01 à 15:00</div>
+                                </div>
+                                <span class="ceremony-status ceremony-upcoming">À venir</span>
+                            </li>
+                            <li class="ceremony-item">
+                                <div>
+                                    <div class="ceremony-name">Sprint Retro</div>
+                                    <div class="ceremony-date">2026-08-03 à 16:00</div>
+                                </div>
+                                <span class="ceremony-status ceremony-upcoming">À venir</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Risk & Quality Signals -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Signaux de Risque & Quality Gates</h3>
+                    <span style="font-size: 13px; color: var(--mui-warning);">3 Signaux</span>
+                </div>
+                <div class="card-body">
+                    <div class="risk-metrics">
+                        <div class="risk-metric">
+                            <div class="risk-metric-value error">1</div>
+                            <div class="risk-metric-label">Story Stale &gt; 3j</div>
+                        </div>
+                        <div class="risk-metric">
+                            <div class="risk-metric-value warning">2</div>
+                            <div class="risk-metric-label">PRs &gt; 48h</div>
+                        </div>
+                        <div class="risk-metric">
+                            <div class="risk-metric-value success">85%</div>
+                            <div class="risk-metric-label">Quality Gates</div>
+                        </div>
+                    </div>
+
+                    <div class="signal-item error">
+                        <div class="signal-content">
+                            <div class="signal-title">Story stale &gt; 3 jours</div>
+                            <div class="signal-desc">US-2024-042: Aucune activité depuis le 27 juil.</div>
+                        </div>
+                        <div class="signal-time">Il y a 4j</div>
+                    </div>
+
+                    <div class="signal-item warning">
+                        <div class="signal-content">
+                            <div class="signal-title">PR en attente de review &gt; 48h</div>
+                            <div class="signal-desc">PR #142: En attente de review depuis 2 jours</div>
+                        </div>
+                        <div class="signal-time">Il y a 2j</div>
+                    </div>
+
+                    <div class="signal-item info">
+                        <div class="signal-content">
+                            <div class="signal-title">Module à haut risque de conflit</div>
+                            <div class="signal-desc">Module 'sync-engine': 3 branches actives simultanées</div>
+                        </div>
+                        <div class="signal-time">Signalé hier</div>
+                    </div>
+
+                    <div class="quality-gates">
+                        <h4 style="font-size: 14px; font-weight: 600; margin: 0 0 12px 0;">Quality Gates</h4>
+                        <div class="gate-item">
+                            <span>Specs présentes pour US</span>
+                            <span class="gate-status gate-pass">✓ Pass</span>
+                        </div>
+                        <div class="gate-item">
+                            <span>PRs reviewed avant merge</span>
+                            <span class="gate-status gate-pending">◐ Pending</span>
+                        </div>
+                        <div class="gate-item">
+                            <span>Tests liés aux stories</span>
+                            <span class="gate-status gate-fail">✗ Fail</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mock-caption">
+            Maquette clé: Dashboard Sprint & Signaux de Risque - Progression déterministe, cérémonies, signaux de risque et quality gates sans appel LLM
+        </div>
+    </div>
+</body>
+</html>

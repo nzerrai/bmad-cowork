@@ -1,0 +1,101 @@
+# generated: 2026-08-02
+# last_updated: 2026-08-07
+# project: tarmacacademy
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: prjdocs/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# Action Item Status:
+#   - open: Committed during a retrospective, not yet addressed
+#   - in-progress: Actively being worked on
+#   - done: Completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+# - Retrospective appends its action items to action_items; sprint-status surfaces open ones
+
+generated: 2026-08-02
+last_updated: 2026-08-07
+project: tarmacacademy
+project_key: NOKEY
+tracking_system: file-system
+story_location: prjdocs/implementation-artifacts
+
+development_status:
+  # Epic 0: Project Scaffolding & Dev Environment (Sprint 0)
+  epic-0: done
+  0-1-project-scaffolding-and-dev-environment: done
+  0-2-authentication-and-rbac-foundation: done
+  epic-0-retrospective: optional
+
+  # Epic 1: Artifact Health & Traceability Catalog
+  epic-1: backlog
+  1-1-artifact-indexing-engine: backlog
+  1-2-artifact-health-dashboard: backlog
+  1-3-traceability-matrix: backlog
+  epic-1-retrospective: optional
+
+  # Epic 2: Distributed Sync & Zero-Setup Onboarding
+  epic-2: backlog
+  2-1-real-time-websocket-communication-pillar: backlog
+  2-2-local-repo-scan-and-git-state-detection: backlog
+  2-3-zero-setup-onboarding-and-application-identity: backlog
+  2-4-pending-access-state-and-actionable-prompt: backlog
+  2-5-continuous-local-repo-state-reporting: backlog
+  epic-2-retrospective: optional
+
+  # Epic 3: Claims, Contributors & Team Sync View
+  epic-3: backlog
+  3-1-lease-based-story-claiming: backlog
+  3-2-auto-healing-sync-on-claim-conflict: backlog
+  3-3-dashboard-overview-health: backlog
+  3-4-contributor-views-with-status-indicators: backlog
+  3-5-contributor-detail-panel: backlog
+  3-6-one-click-re-sync: backlog
+  3-7-real-time-notifications: backlog
+  epic-3-retrospective: optional
+
+  # Epic 4: Sprint & Ceremony Dashboard
+  epic-4: backlog
+  4-1-sprint-status-display: backlog
+  4-2-ceremony-list-and-status: backlog
+  4-3-deterministic-charts-generation: backlog
+  epic-4-retrospective: optional
+
+  # Epic 5: Risk & Quality Signals
+  epic-5: backlog
+  5-1-risk-signals-display: backlog
+  5-2-quality-gates-verification-with-compliance-score-breakdown: backlog
+  epic-5-retrospective: optional
+
+  # Epic 6: System Administration
+  epic-6: backlog
+  6-1-git-repos-project-configuration: backlog
+  6-2-user-and-role-management: backlog
+  epic-6-retrospective: optional

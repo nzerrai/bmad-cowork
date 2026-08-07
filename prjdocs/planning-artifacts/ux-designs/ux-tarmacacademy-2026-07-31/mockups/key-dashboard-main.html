@@ -1,0 +1,442 @@
+<!--
+  Key Screen: Main Dashboard - BMAD Portal MVP
+  Governed by EXPERIENCE.md: Key Flows, Information Architecture
+  Governed by DESIGN.md: Components, Layout & Spacing, Colors
+  MUI System - Multi-surface Portal
+-->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BMAD Portal - Main Dashboard</title>
+    <style>
+        :root {
+            --mui-primary: #1976d2;
+            --mui-primary-dark: #1565c0;
+            --mui-secondary: #0288d1;
+            --mui-background: #f5f5f5;
+            --mui-surface: #ffffff;
+            --mui-error: #d32f2f;
+            --mui-success: #388e3c;
+            --mui-warning: #f57c00;
+            --mui-info: #0288d1;
+            --mui-text-primary: #212121;
+            --mui-text-secondary: #757575;
+            --mui-border: #e0e0e0;
+        }
+
+        body {
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: var(--mui-background);
+            color: var(--mui-text-primary);
+            line-height: 1.5;
+        }
+
+        .device-frame {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .portal-header {
+            background: var(--mui-surface);
+            border-bottom: 1px solid var(--mui-border);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .portal-logo {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--mui-primary);
+            margin: 0;
+        }
+
+        .portal-nav {
+            display: flex;
+            gap: 24px;
+        }
+
+        .nav-item {
+            color: var(--mui-text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 8px 0;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .nav-item:hover {
+            color: var(--mui-primary);
+        }
+
+        .nav-item.active {
+            color: var(--mui-primary);
+            border-bottom-color: var(--mui-primary);
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--mui-primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: var(--mui-surface);
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--mui-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-item {
+            background: var(--mui-surface);
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--mui-primary);
+            margin: 0 0 4px 0;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--mui-text-secondary);
+            margin: 0;
+        }
+
+        .artifact-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .artifact-item {
+            padding: 12px 0;
+            border-bottom: 1px solid var(--mui-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .artifact-item:last-child {
+            border-bottom: none;
+        }
+
+        .artifact-name {
+            font-size: 14px;
+            font-weight: 500;
+            margin: 0 0 4px 0;
+        }
+
+        .artifact-meta {
+            font-size: 12px;
+            color: var(--mui-text-secondary);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-complete {
+            background: #e8f5e9;
+            color: var(--mui-success);
+        }
+
+        .status-incomplete {
+            background: #fff3e0;
+            color: var(--mui-warning);
+        }
+
+        .status-error {
+            background: #ffebee;
+            color: var(--mui-error);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-complete .status-dot { background: var(--mui-success); }
+        .status-incomplete .status-dot { background: var(--mui-warning); }
+        .status-error .status-dot { background: var(--mui-error); }
+
+        .risk-item {
+            padding: 12px;
+            background: #ffebee;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            border-left: 3px solid var(--mui-error);
+        }
+
+        .risk-item.warning {
+            background: #fff3e0;
+            border-left-color: var(--mui-warning);
+        }
+
+        .risk-title {
+            font-size: 13px;
+            font-weight: 600;
+            margin: 0 0 4px 0;
+        }
+
+        .risk-desc {
+            font-size: 12px;
+            color: var(--mui-text-secondary);
+            margin: 0;
+        }
+
+        .contributeur-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--mui-border);
+        }
+
+        .contributeur-row:last-child {
+            border-bottom: none;
+        }
+
+        .contributeur-name {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .contributeur-status {
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-online { color: var(--mui-success); }
+        .status-offline { color: var(--mui-text-secondary); }
+
+        .mock-caption {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: var(--mui-text-secondary);
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="device-frame">
+        <div class="portal-header">
+            <div>
+                <h1 class="portal-logo">BMAD Portal</h1>
+            </div>
+            <nav class="portal-nav">
+                <a href="#" class="nav-item active">Dashboard</a>
+                <a href="#" class="nav-item">Artifacts</a>
+                <a href="#" class="nav-item">Team Sync</a>
+                <a href="#" class="nav-item">Sprints</a>
+                <a href="#" class="nav-item">Risques</a>
+            </nav>
+            <div class="user-menu">
+                <span style="font-size: 14px; color: var(--mui-text-secondary);">Nono</span>
+                <div class="user-avatar">N</div>
+            </div>
+        </div>
+
+        <div class="stats-row">
+            <div class="stat-item">
+                <div class="stat-value">24</div>
+                <div class="stat-label">Artifacts Indexés</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">8</div>
+                <div class="stat-label">Contributeurs</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">12</div>
+                <div class="stat-label">Stories Sprint</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">3</div>
+                <div class="stat-label">Signaux de Risque</div>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div>
+                <div class="card" style="margin-bottom: 24px;">
+                    <div class="card-header">
+                        <h3 class="card-title">Santé des Artifacts</h3>
+                        <span class="status-badge status-complete">
+                            <span class="status-dot"></span>
+                            85% Complet
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <ul class="artifact-list">
+                            <li class="artifact-item">
+                                <div>
+                                    <div class="artifact-name">prd-tarmacacademy-2026-07-30</div>
+                                    <div class="artifact-meta">Créé: 2026-07-30 | Dernière mise à jour: 2026-07-30</div>
+                                </div>
+                                <span class="status-badge status-complete">
+                                    <span class="status-dot"></span>
+                                    Complet
+                                </span>
+                            </li>
+                            <li class="artifact-item">
+                                <div>
+                                    <div class="artifact-name">architecture-tarmacacademy</div>
+                                    <div class="artifact-meta">Créé: 2026-07-29 | Dernière mise à jour: 2026-07-29</div>
+                                </div>
+                                <span class="status-badge status-complete">
+                                    <span class="status-dot"></span>
+                                    Complet
+                                </span>
+                            </li>
+                            <li class="artifact-item">
+                                <div>
+                                    <div class="artifact-name">ux-design-ux-tarmacacademy-2026-07-31</div>
+                                    <div class="artifact-meta">Créé: 2026-07-31 | Statut: brouillon</div>
+                                </div>
+                                <span class="status-badge status-incomplete">
+                                    <span class="status-dot"></span>
+                                    En cours
+                                </span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Progression du Sprint</h3>
+                        <span style="font-size: 14px; font-weight: 600;">8/12 Stories</span>
+                    </div>
+                    <div class="card-body">
+                        <div style="background: #e0e0e0; border-radius: 4px; height: 8px; margin-bottom: 16px;">
+                            <div style="background: var(--mui-success); width: 66%; height: 100%; border-radius: 4px;"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--mui-text-secondary);">
+                            <span>Commencé: 2026-07-28</span>
+                            <span>Terminé: 2026-08-03</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div class="card" style="margin-bottom: 24px;">
+                    <div class="card-header">
+                        <h3 class="card-title">Signaux de Risque</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="risk-item">
+                            <div class="risk-title">Story stale &gt; 3 jours</div>
+                            <div class="risk-desc">US-2024-042: Aucune activité depuis le 27 juil.</div>
+                        </div>
+                        <div class="risk-item warning">
+                            <div class="risk-title">PR en attente &gt; 48h</div>
+                            <div class="risk-desc">PR #142: En attente de review depuis 2 jours</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Contributeurs</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="contributeur-row">
+                            <span class="contributeur-name">Jean D.</span>
+                            <span class="contributeur-status status-online">
+                                <span class="status-dot" style="background: var(--mui-success); width: 8px; height: 8px; border-radius: 50%; display: inline-block;"></span>
+                                Connecté
+                            </span>
+                        </div>
+                        <div class="contributeur-row">
+                            <span class="contributeur-name">Marie L.</span>
+                            <span class="contributeur-status status-online">
+                                <span class="status-dot" style="background: var(--mui-success); width: 8px; height: 8px; border-radius: 50%; display: inline-block;"></span>
+                                Connecté
+                            </span>
+                        </div>
+                        <div class="contributeur-row">
+                            <span class="contributeur-name">Paul M.</span>
+                            <span class="contributeur-status status-offline">
+                                <span class="status-dot" style="background: var(--mui-text-secondary); width: 8px; height: 8px; border-radius: 50%; display: inline-block;"></span>
+                                Cache
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mock-caption">
+            Maquette clé: Dashboard Principal - Vue globale du portail BMAD avec santé des artifacts, progression sprint, signaux de risque et contributeurs
+        </div>
+    </div>
+</body>
+</html>

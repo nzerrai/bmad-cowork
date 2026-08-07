@@ -1,0 +1,447 @@
+<!--
+  Key Screen: Team Sync & Contributors View - BMAD Portal MVP
+  Governed by EXPERIENCE.md: Key Flows, Component Patterns
+  Governed by DESIGN.md: Components, Colors, State Patterns
+  MUI System - Multi-surface Portal
+-->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BMAD Portal - Team Sync View</title>
+    <style>
+        :root {
+            --mui-primary: #1976d2;
+            --mui-primary-dark: #1565c0;
+            --mui-background: #f5f5f5;
+            --mui-surface: #ffffff;
+            --mui-error: #d32f2f;
+            --mui-success: #388e3c;
+            --mui-warning: #f57c00;
+            --mui-text-primary: #212121;
+            --mui-text-secondary: #757575;
+            --mui-border: #e0e0e0;
+        }
+
+        body {
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: var(--mui-background);
+            color: var(--mui-text-primary);
+            line-height: 1.5;
+        }
+
+        .device-frame {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .view-header {
+            background: var(--mui-surface);
+            border-bottom: 1px solid var(--mui-border);
+            padding: 20px 24px;
+            margin-bottom: 24px;
+        }
+
+        .view-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0 0 8px 0;
+        }
+
+        .view-subtitle {
+            font-size: 14px;
+            color: var(--mui-text-secondary);
+            margin: 0;
+        }
+
+        .sync-status-bar {
+            background: var(--mui-surface);
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sync-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sync-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e8f5e9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .sync-text {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .sync-meta {
+            font-size: 12px;
+            color: var(--mui-text-secondary);
+        }
+
+        .sync-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--mui-primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--mui-primary-dark);
+        }
+
+        .btn-outlined {
+            background: transparent;
+            border: 1px solid var(--mui-border);
+            color: var(--mui-text-primary);
+        }
+
+        .contributors-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+        }
+
+        .contributor-card {
+            background: var(--mui-surface);
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .contributor-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--mui-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .contributor-name {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .contributor-role {
+            font-size: 12px;
+            color: var(--mui-text-secondary);
+            margin: 4px 0 0 0;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-connected {
+            background: #e8f5e9;
+            color: var(--mui-success);
+        }
+
+        .status-cached {
+            background: #fff3e0;
+            color: var(--mui-warning);
+        }
+
+        .status-indicator .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-connected .status-dot { background: var(--mui-success); }
+        .status-cached .status-dot { background: var(--mui-warning); }
+
+        .contributor-body {
+            padding: 16px;
+        }
+
+        .contributor-task {
+            font-size: 13px;
+            font-weight: 500;
+            margin: 0 0 8px 0;
+        }
+
+        .contributor-branch {
+            font-size: 12px;
+            color: var(--mui-text-secondary);
+            margin: 0 0 12px 0;
+        }
+
+        .sync-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .sync-detail-item {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .sync-detail-label {
+            color: var(--mui-text-secondary);
+        }
+
+        .sync-detail-value {
+            font-weight: 500;
+        }
+
+        .claim-section {
+            padding: 12px 16px;
+            border-top: 1px solid var(--mui-border);
+            background: #f9f9f9;
+        }
+
+        .claim-btn {
+            width: 100%;
+            padding: 8px;
+            background: var(--mui-primary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .claim-btn:hover {
+            background: var(--mui-primary-dark);
+        }
+
+        .claim-btn:disabled {
+            background: #bdbdbd;
+            cursor: not-allowed;
+        }
+
+        .mock-caption {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: var(--mui-text-secondary);
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="device-frame">
+        <div class="view-header">
+            <h1 class="view-title">Synchronisation d'Équipe & Contributeurs</h1>
+            <p class="view-subtitle">Vue globale du state local vs Git remote, état des contributeurs et gestion des claims</p>
+        </div>
+
+        <div class="sync-status-bar">
+            <div class="sync-info">
+                <div class="sync-icon">🔄</div>
+                <div>
+                    <div class="sync-text">Sync complète effectuée</div>
+                    <div class="sync-meta">Dernière synchronisation: 2026-07-31 à 10:15 UTC</div>
+                </div>
+            </div>
+            <div class="sync-actions">
+                <button class="btn btn-outlined">Actualiser</button>
+                <button class="btn btn-primary">Nouvelle Sync</button>
+            </div>
+        </div>
+
+        <div class="contributors-grid">
+            <!-- Contributor 1: Connected -->
+            <div class="contributor-card">
+                <div class="contributor-header">
+                    <div>
+                        <h3 class="contributor-name">Jean Dupont</h3>
+                        <p class="contributor-role">Développeur Frontend</p>
+                    </div>
+                    <span class="status-indicator status-connected">
+                        <span class="status-dot"></span>
+                        Connecté
+                    </span>
+                </div>
+                <div class="contributor-body">
+                    <div class="contributor-task">US-2024-045: Artifact Health Dashboard</div>
+                    <div class="contributor-branch">Branch: feature/artifact-dashboard</div>
+                    <div class="sync-details">
+                        <div class="sync-detail-item">
+                            <span class="sync-detail-label">Local vs Remote</span>
+                            <span class="sync-detail-value" style="color: var(--mui-success);">Sync</span>
+                        </div>
+                        <div class="sync-detail-item">
+                            <span class="sync-detail-label">Dernier commit</span>
+                            <span class="sync-detail-value">Il y a 2h</span>
+                        </div>
+                        <div class="sync-detail-item">
+                            <span class="sync-detail-label">PRs associées</span>
+                            <span class="sync-detail-value">#143</span>
+                        </div>
+                        <div class="sync-detail-item">
+                            <span class="sync-detail-label">Status claim</span>
+                            <span class="sync-detail-value">Actif</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="claim-section">
+                    <button class="claim-btn" disabled>Claim Actif - US-2024-045</button>
+                </div>
+            </div>
+
+            <!-- Contributor 2: Connected -->
+            <div class="contributor-card">
+                <div class="contributor-header">
+                    <div>
+                        <h3 class="contributor-name">Marie Laurent</h3>
+                        <p class="contributor-role">Product Manager</p>
+                    </div>
+                    <span class="status-indicator status-connected">
+                        <span class="status-dot"></span>
+                        Connecté
+                    </span>
+                </div>
+                <div class="contributor-body">
+                    <div class="contributor-task">US-2024-038: Sprint Dashboard</div>
+                    <div class="contributor-branch">Branch: feature/sprint-views</div>
+                    <div class="sync-details">
+                        <div class="sync-detail-item">
+                            <span class="sync-detail-label">Local vs Remote</span>
+                            <span class="sync-detail-value" style="color: var(--mui-success);">Sync</span>
+                        </div>
+                        <div class="sync-detail-item">
+                            <span class="sync-detail-label">Dernier commit</span>
+                            <span class="sync-detail-value">Il y a 5h</span>
+                        </div>
+                        <div class="sync-detail-item">
+                            <span class="sync-detail-label">PRs associées</span>
+                            <span class="sync-detail-value">#141</span>
+                        </div>
+                        <div class="sync-detail-item">
+                            <span class="sync-detail-label">Status claim</span>
+                            <span class="sync-detail-value">Actif</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="claim-section">
+                    <button class="claim-btn" disabled>Claim Actif - US-2024-038</button>
+                </div>
+            </div>
+
+            <!-- Contributor 3: Cached -->
+            <div class="contributor-card">
+                <div class="contributor-header">
+                    <div>
+                        <h3 class="contributor-name">Paul Martin</h3>
+                        <p class="contributor-role">Développeur Backend</p>
+                    </div>
+                    <span class="status-indicator status-cached">
+                        <span class="status-dot"></span>
+                        Cache
+                    </span>
+                </div>
+                <div class="contributor-body">
+                    <div class="contributor-task">US-2024-041: Sync Engine CLI</div>
+                    <div class="contributor-branch">Branch: feature/sync-engine</div>
+                    <div class="sync-details">
+                        <div class="sync-detail-item">
+                            <span class="sync-detail-label">Local vs Remote</span>
+                            <span class="sync-detail-value" style="color: var(--mui-warning);">Delta</span>
+                        </div>
+                        <div class="sync-detail-item">
+                            <span class="sync-detail-label">Dernier commit</span>
+                            <span class="sync-detail-value">Hier</span>
+                        </div>
+                        <div class="sync-detail-item">
+                            <span class="sync-detail-label">PRs associées</span>
+                            <span class="sync-detail-value">#139</span>
+                        </div>
+                        <div class="sync-detail-item">
+                            <span class="sync-detail-label">Status claim</span>
+                            <span class="sync-detail-value">Expiré?</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="claim-section">
+                    <button class="claim-btn">Vérifier & Re-Claim</button>
+                </div>
+            </div>
+
+            <!-- Contributor 4: Available -->
+            <div class="contributor-card">
+                <div class="contributor-header">
+                    <div>
+                        <h3 class="contributor-name">Sophie Bernard</h3>
+                        <p class="contributor-role">QA Engineer</p>
+                    </div>
+                    <span class="status-indicator status-cached">
+                        <span class="status-dot"></span>
+                        Cache
+                    </span>
+                </div>
+                <div class="contributor-body">
+                    <div class="contributor-task">Aucun claim actif</div>
+                    <div class="contributor-branch">Branch: main</div>
+                    <div class="sync-details">
+                        <div class="sync-detail-item">
+                            <span class="sync-detail-label">Local vs Remote</span>
+                            <span class="sync-detail-value" style="color: var(--mui-success);">Sync</span>
+                        </div>
+                        <div class="sync-detail-item">
+                            <span class="sync-detail-label">Dernier commit</span>
+                            <span class="sync-detail-value">2 jours</span>
+                        </div>
+                        <div class="sync-detail-item">
+                            <span class="sync-detail-label">PRs à review</span>
+                            <span class="sync-detail-value">3</span>
+                        </div>
+                        <div class="sync-detail-item">
+                            <span class="sync-detail-label">Status claim</span>
+                            <span class="sync-detail-value">Disponible</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="claim-section">
+                    <button class="claim-btn">Voir Stories Disponibles</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="mock-caption">
+            Maquette clé: Vue Team Sync & Contributeurs - État de synchronisation local/remote, statuts connectés/cache, et mécanisme de claim déterministe
+        </div>
+    </div>
+</body>
+</html>

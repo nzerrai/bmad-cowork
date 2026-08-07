@@ -1,0 +1,445 @@
+<meta charset="UTF-8" />
+<title>Dashboard — BMad Portal</title>
+<style>
+  :root {
+    --bg: #0a1120;
+    --bg-grid: #0d1526;
+    --surface: #121b30;
+    --surface-2: #182544;
+    --surface-3: #1c2b4d;
+    --border: #24314f;
+    --border-soft: #1b2843;
+    --text: #e7ecf6;
+    --text-dim: #96a3c2;
+    --text-faint: #5f6d8f;
+
+    --emerald: #34d399;
+    --emerald-bg: rgba(52, 211, 153, 0.12);
+    --amber: #f5a524;
+    --amber-bg: rgba(245, 165, 36, 0.13);
+    --rose: #fb6478;
+    --rose-bg: rgba(251, 100, 120, 0.14);
+    --cyan: #38bdf8;
+    --cyan-bg: rgba(56, 189, 248, 0.12);
+    --indigo: #8b8cf8;
+    --indigo-bg: rgba(139, 140, 248, 0.14);
+    --slate: #7885a3;
+    --slate-bg: rgba(120, 133, 163, 0.14);
+
+    --sans: ui-sans-serif, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); }
+  body {
+    font-family: var(--sans);
+    color: var(--text);
+    min-height: 100vh;
+    background-image:
+      linear-gradient(var(--bg-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
+    background-size: 48px 48px;
+    background-attachment: fixed;
+  }
+  a { color: inherit; }
+
+  .shell { max-width: 1120px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  .page-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .page-head h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 4px; }
+  .page-sub { font-size: 13px; color: var(--text-dim); }
+
+  .status-bar {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 12.5px;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+  .status-bar .live-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--cyan); box-shadow: 0 0 6px var(--cyan);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .status-bar .live-dot { animation: pulse 2s ease-in-out infinite; }
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px 4px 8px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .pill .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: currentColor; box-shadow: 0 0 0 3px currentColor;
+  }
+  .pill.emerald { background: var(--emerald-bg); color: var(--emerald); }
+  .pill.amber   { background: var(--amber-bg);   color: var(--amber); }
+  .pill.rose    { background: var(--rose-bg);    color: var(--rose); }
+  .pill.cyan    { background: var(--cyan-bg);    color: var(--cyan); }
+  .pill.indigo  { background: var(--indigo-bg);  color: var(--indigo); }
+  .pill.slate   { background: var(--slate-bg);   color: var(--slate); }
+
+  /* ---- Central repo card ---- */
+  .central {
+    background: linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.02) inset, 0 12px 30px -18px rgba(0,0,0,0.6);
+  }
+  .central-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .central-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .central-icon {
+    flex: none;
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    background: var(--indigo-bg);
+    color: var(--indigo);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+  }
+  .central-title h2 { font-size: 15px; font-weight: 700; margin: 0; }
+  .central-id {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--text-faint);
+    margin-top: 2px;
+  }
+
+  .central-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 760px) { .central-stats { grid-template-columns: repeat(2, 1fr); } }
+  .stat {
+    background: var(--surface-3);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+  }
+  .stat-num {
+    font-family: var(--mono);
+    font-size: 19px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+  }
+  .stat-label {
+    margin-top: 4px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-faint);
+  }
+
+  .pr-list { display: flex; flex-direction: column; }
+  .pr-list-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.07em; color: var(--text-faint);
+    margin-bottom: 8px;
+  }
+  .pr-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 0;
+    border-top: 1px solid var(--border-soft);
+    font-size: 13px;
+  }
+  .pr-row:first-of-type { border-top: none; }
+  .pr-title { color: var(--text); }
+  .pr-meta { font-family: var(--mono); font-size: 11.5px; color: var(--text-faint); margin-top: 2px; }
+
+  /* ---- Contributors ---- */
+  .section-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    margin: 0 0 12px;
+  }
+
+  .contrib-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+  @media (max-width: 720px) { .contrib-grid { grid-template-columns: 1fr; } }
+
+  .contrib-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+  }
+  .contrib-card.absent { opacity: 0.72; }
+
+  .contrib-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .contrib-avatar {
+    flex: none;
+    width: 40px; height: 40px;
+    border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: #0a1120;
+  }
+  .contrib-name-row {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .contrib-name { font-size: 14px; font-weight: 600; }
+  .contrib-last-seen {
+    font-size: 11px;
+    color: var(--text-faint);
+    font-family: var(--mono);
+    margin-top: 2px;
+  }
+
+  .contrib-body {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-soft);
+  }
+  .contrib-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 12.5px;
+  }
+  .contrib-row .label { color: var(--text-faint); }
+  .contrib-row .drift-count {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-dim);
+    font-size: 11.5px;
+  }
+
+  .contrib-story {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .contrib-story .us-id {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-faint);
+  }
+  .contrib-story .us-title { font-size: 12.5px; color: var(--text); }
+  .contrib-story.unassigned .us-title { color: var(--text-faint); font-style: italic; }
+
+  ::selection { background: var(--indigo-bg); color: var(--text); }
+</style>
+
+<div class="shell">
+  <div class="page-head">
+    <div>
+      <h1>Dashboard</h1>
+      <div class="page-sub">Vue d'ensemble du réseau distribué — état central et contributeurs</div>
+    </div>
+    <span class="status-bar"><span class="live-dot"></span>WebSocket connecté</span>
+  </div>
+
+  <div class="central">
+    <div class="central-top">
+      <div class="central-title">
+        <span class="central-icon">&#9670;</span>
+        <div>
+          <h2>Dépôt central</h2>
+          <div class="central-id">github.com/tarmacacademy/portal-hub · branche main</div>
+        </div>
+      </div>
+      <span class="pill emerald"><span class="dot"></span>Source de vérité à jour</span>
+    </div>
+
+    <div class="central-stats">
+      <div class="stat">
+        <div class="stat-num" style="color: var(--text);">7</div>
+        <div class="stat-label">Commits aujourd'hui</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" style="color: var(--amber);">3</div>
+        <div class="stat-label">PRs ouvertes</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" style="color: var(--rose);">1</div>
+        <div class="stat-label">Contributeur en conflit</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" style="color: var(--text);">à l'instant</div>
+        <div class="stat-label">Dernière sync reçue</div>
+      </div>
+    </div>
+
+    <div class="pr-list">
+      <div class="pr-list-title">Pull requests ouvertes</div>
+      <div class="pr-row">
+        <div>
+          <div class="pr-title">Panel Fiche Contributeur — UI</div>
+          <div class="pr-meta">#284 · feature/auto-join-ux · Yasmine Belkacem</div>
+        </div>
+        <span class="pill rose"><span class="dot"></span>Conflit</span>
+      </div>
+      <div class="pr-row">
+        <div>
+          <div class="pr-title">Résilience heartbeat WebSocket (AD-002)</div>
+          <div class="pr-meta">#281 · feature/heartbeat-resiliency · Amina Meddour</div>
+        </div>
+        <span class="pill amber"><span class="dot"></span>En revue</span>
+      </div>
+      <div class="pr-row">
+        <div>
+          <div class="pr-title">Correctif backoff de retry de sync</div>
+          <div class="pr-meta">#279 · fix/retry-backoff · Yanis Meziane</div>
+        </div>
+        <span class="pill emerald"><span class="dot"></span>Approuvée</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Contributeurs</div>
+  <div class="contrib-grid">
+    <div class="contrib-card">
+      <div class="contrib-head">
+        <span class="contrib-avatar" style="background: linear-gradient(160deg, var(--indigo), #5860d9);">YB</span>
+        <div class="contrib-name-row">
+          <div>
+            <div class="contrib-name">Yasmine Belkacem</div>
+            <div class="contrib-last-seen">active à l'instant</div>
+          </div>
+          <span class="pill cyan"><span class="dot"></span>Connectée</span>
+        </div>
+      </div>
+      <div class="contrib-body">
+        <div class="contrib-row">
+          <span class="label">Décalage vs central</span>
+          <span><span class="pill rose"><span class="dot"></span>Conflit</span> <span class="drift-count">&#8593;4 &#8595;11</span></span>
+        </div>
+        <div class="contrib-story">
+          <span class="us-id">US-142</span>
+          <span class="us-title">Panel Fiche Contributeur — UI</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="contrib-card">
+      <div class="contrib-head">
+        <span class="contrib-avatar" style="background: linear-gradient(160deg, var(--cyan), #1c7fb0);">AM</span>
+        <div class="contrib-name-row">
+          <div>
+            <div class="contrib-name">Amina Meddour</div>
+            <div class="contrib-last-seen">active à l'instant</div>
+          </div>
+          <span class="pill cyan"><span class="dot"></span>Connectée</span>
+        </div>
+      </div>
+      <div class="contrib-body">
+        <div class="contrib-row">
+          <span class="label">Décalage vs central</span>
+          <span><span class="pill emerald"><span class="dot"></span>Synchronisée</span></span>
+        </div>
+        <div class="contrib-story">
+          <span class="us-id">US-118</span>
+          <span class="us-title">Résilience heartbeat WebSocket</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="contrib-card absent">
+      <div class="contrib-head">
+        <span class="contrib-avatar" style="background: linear-gradient(160deg, var(--slate), #4b5670);">YM</span>
+        <div class="contrib-name-row">
+          <div>
+            <div class="contrib-name">Yanis Meziane</div>
+            <div class="contrib-last-seen">vu il y a 6 h</div>
+          </div>
+          <span class="pill slate"><span class="dot"></span>Absent</span>
+        </div>
+      </div>
+      <div class="contrib-body">
+        <div class="contrib-row">
+          <span class="label">Décalage vs central (dernier état connu)</span>
+          <span><span class="pill amber"><span class="dot"></span>Drift</span> <span class="drift-count">&#8593;2 &#8595;0</span></span>
+        </div>
+        <div class="contrib-story unassigned">
+          <span class="us-id">US-101</span>
+          <span class="us-title">assigné · lease expirée, pas encore repris</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="contrib-card">
+      <div class="contrib-head">
+        <span class="contrib-avatar" style="background: linear-gradient(160deg, var(--emerald), #1c9d6f);">SH</span>
+        <div class="contrib-name-row">
+          <div>
+            <div class="contrib-name">Sofia Haddad</div>
+            <div class="contrib-last-seen">active à l'instant</div>
+          </div>
+          <span class="pill cyan"><span class="dot"></span>Connectée</span>
+        </div>
+      </div>
+      <div class="contrib-body">
+        <div class="contrib-row">
+          <span class="label">Décalage vs central</span>
+          <span><span class="pill emerald"><span class="dot"></span>Synchronisée</span></span>
+        </div>
+        <div class="contrib-story unassigned">
+          <span class="us-id">—</span>
+          <span class="us-title">aucune US en cours</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

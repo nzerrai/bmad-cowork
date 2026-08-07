@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>BMad Portal — Party Mode — Epic 0</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --bg:#0A1120; --surface:#121B30; --surface-elevated:#182544; --surface-inset:#1C2B4D;
+    --border:#24314F; --border-soft:#1B2843;
+    --text:#E7ECF6; --text-2:#96A3C2; --text-3:#5F6D8F;
+    --success:#34D399; --warning:#F5A524; --error:#FB6478; --info:#38BDF8; --action:#8B8CF8; --neutral:#7885A3;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;
+    line-height:1.55;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:48px 20px 80px}
+  header{margin-bottom:40px}
+  .eyebrow{
+    font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--action);
+    font-weight:700;margin-bottom:10px;
+  }
+  h1{font-size:26px;margin:0 0 8px;letter-spacing:-0.01em}
+  .meta{color:var(--text-2);font-size:13.5px}
+  .glow{
+    position:fixed;top:-200px;right:-200px;width:500px;height:500px;border-radius:50%;
+    background:radial-gradient(circle,rgba(139,140,248,.14),transparent 70%);pointer-events:none;
+  }
+  .cast{
+    display:flex;flex-wrap:wrap;gap:8px;margin:20px 0 36px;
+  }
+  .chip{
+    display:flex;align-items:center;gap:6px;background:var(--surface);
+    border:1px solid var(--border);border-radius:999px;padding:6px 12px 6px 8px;
+    font-size:12.5px;color:var(--text-2);
+  }
+  .chip b{color:var(--text);font-weight:600}
+  .decision{
+    background:var(--surface-elevated);border:1px solid var(--border);border-radius:12px;
+    padding:18px 20px;margin:0 0 36px;position:relative;overflow:hidden;
+  }
+  .decision::before{
+    content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--success);
+  }
+  .decision .label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--success);font-weight:700;margin-bottom:6px}
+  .decision p{margin:0;color:var(--text-2);font-size:14px}
+  .turn{
+    display:flex;gap:14px;margin:0 0 22px;
+    animation:rise .5s ease backwards;
+  }
+  .turn:nth-child(odd){animation-delay:.02s}
+  @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .avatar{
+    flex:none;width:38px;height:38px;border-radius:12px;
+    background:var(--surface-inset);border:1px solid var(--border);
+    display:flex;align-items:center;justify-content:center;font-size:18px;
+  }
+  .bubble{
+    flex:1;background:var(--surface);border:1px solid var(--border-soft);
+    border-radius:12px;padding:12px 16px;
+  }
+  .who{font-size:13px;font-weight:700;margin-bottom:3px}
+  .who .role{color:var(--text-3);font-weight:500;font-size:11.5px;margin-left:6px}
+  .line{font-size:14px;color:var(--text)}
+  .line em{color:var(--text-2);font-style:italic}
+  code{
+    font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12.5px;
+    background:var(--surface-inset);padding:1px 5px;border-radius:5px;color:var(--info);
+  }
+  .name-mary{color:var(--info)}
+  .name-paige{color:#c98bf8}
+  .name-john{color:var(--action)}
+  .name-sally{color:#f78bd0}
+  .name-winston{color:var(--warning)}
+  .name-amelia{color:var(--success)}
+  .result{
+    margin-top:44px;padding-top:28px;border-top:1px solid var(--border);
+  }
+  .result h2{font-size:15px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-2);margin:0 0 14px}
+  .result ul{margin:0;padding-left:20px;color:var(--text-2);font-size:13.5px}
+  .result li{margin-bottom:6px}
+  footer{margin-top:48px;color:var(--text-3);font-size:12px;text-align:center}
+  .pulse{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--success);
+    box-shadow:0 0 8px var(--success);margin-right:6px;animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+</style>
+</head>
+<body>
+<div class="glow"></div>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Party Mode · BMad Portal (Hub)</div>
+    <h1>Epic 0 : le sprint qui manquait</h1>
+    <div class="meta"><span class="pulse"></span>6 août 2026 — salle "installed" — 6 voix, une décision</div>
+  </header>
+
+  <div class="cast">
+    <span class="chip">📊 <b>Mary</b> — Analyste</span>
+    <span class="chip">📚 <b>Paige</b> — Tech Writer</span>
+    <span class="chip">📋 <b>John</b> — PM</span>
+    <span class="chip">🎨 <b>Sally</b> — UX Designer</span>
+    <span class="chip">🏗️ <b>Winston</b> — Architecte</span>
+    <span class="chip">💻 <b>Amelia</b> — Dev</span>
+  </div>
+
+  <div class="turn">
+    <div class="avatar">📋</div>
+    <div class="bubble">
+      <div class="who name-john">John <span class="role">Product Manager</span></div>
+      <div class="line">"Est-ce que c'est vraiment une <em>story</em> ? Ça n'a pas de valeur utilisateur. C'est du sprint zéro, pas un item d'<code>epics.md</code>."</div>
+    </div>
+  </div>
+
+  <div class="turn">
+    <div class="avatar">🏗️</div>
+    <div class="bubble">
+      <div class="who name-winston">Winston <span class="role">System Architect</span></div>
+      <div class="line">"C'est exactement le genre de raisonnement qui fait qu'on se retrouve avec un monorepo décidé à la volée par la première personne qui pousse un commit."</div>
+    </div>
+  </div>
+
+  <div class="turn">
+    <div class="avatar">💻</div>
+    <div class="bubble">
+      <div class="who name-amelia">Amelia <span class="role">Senior Software Engineer</span></div>
+      <div class="line">"Si ce n'est pas une story, ce n'est pas estimé, donc ça arrive en dette invisible pendant Story 1.1. Je l'ai déjà vécu."</div>
+    </div>
+  </div>
+
+  <div class="turn">
+    <div class="avatar">📊</div>
+    <div class="bubble">
+      <div class="who name-mary">Mary <span class="role">Business Analyst</span></div>
+      <div class="line">"Il n'y a pas de FR qui le couvre — normal, ce n'est pas une exigence produit. N'inventez pas une FR fantôme juste pour la forme."</div>
+    </div>
+  </div>
+
+  <div class="turn">
+    <div class="avatar">🎨</div>
+    <div class="bubble">
+      <div class="who name-sally">Sally <span class="role">UX Designer</span></div>
+      <div class="line">"Si personne ne monte l'environnement Next.js dès le départ, mes premières intégrations UI vont se cogner contre un mur."</div>
+    </div>
+  </div>
+
+  <div class="turn">
+    <div class="avatar">💻</div>
+    <div class="bubble">
+      <div class="who name-amelia">Amelia <span class="role">Senior Software Engineer</span></div>
+      <div class="line">"On est d'accord sur le fond, on se dispute sur l'étiquette. Ce n'est pas une <em>user story</em>, c'est une story <b>enabler</b>."</div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <div class="label">Décision — Nono</div>
+    <p>« Epic 0 en créant le sprint 0. »</p>
+  </div>
+
+  <div class="turn">
+    <div class="avatar">📚</div>
+    <div class="bubble">
+      <div class="who name-paige">Paige <span class="role">Tech Writer</span></div>
+      <div class="line">"AC obligatoire sur le README/CONTRIBUTING, sinon je viens vous relancer dans trois semaines."</div>
+    </div>
+  </div>
+
+  <div class="turn">
+    <div class="avatar">🏗️</div>
+    <div class="bubble">
+      <div class="who name-winston">Winston <span class="role">System Architect</span></div>
+      <div class="line">"Tant que c'est juste <em>ça build, ça teste, ça lint</em> et pas <em>on choisit K8s aujourd'hui</em>, je signe."</div>
+    </div>
+  </div>
+
+  <div class="result">
+    <h2>Ce qui a été appliqué</h2>
+    <ul>
+      <li><b>Epic 0 : Project Scaffolding &amp; Dev Environment</b> — story enabler <code>0.1</code>, insérée avant Epic 1 dans <code>epics.md</code>, sans FR associée (documenté explicitement, pas omis).</li>
+      <li>Scope verrouillé : scaffolding des 3 tiers (Client Python, Backend FastAPI, IHM Next.js), migrations PostgreSQL initiales, CI = lint + tests sur PR uniquement — pas de choix de déploiement.</li>
+      <li><code>ARCHITECTURE-SPINE.md</code> — nouvelle ligne dans la Capability → Architecture Map, renvoyant vers § Deferred pour la topologie de déploiement.</li>
+      <li>Point critique #2 du rapport d'Implementation Readiness (2026-08-06) : traité.</li>
+    </ul>
+  </div>
+
+  <footer>Salle refermée · mémoire conservée pour la prochaine session</footer>
+</div>
+</body>
+</html>
