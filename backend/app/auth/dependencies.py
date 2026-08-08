@@ -12,6 +12,7 @@ from collections.abc import Callable
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.auth.models import Role, User
@@ -29,6 +30,21 @@ _UNAUTHORIZED = HTTPException(
 )
 
 
+def resolve_user_from_token(token: str, db: Session) -> User | None:
+    """Decode + look up the user a bearer token identifies, or `None`.
+
+    Shared by the HTTP (`get_current_user`) and WebSocket (`app/realtime`)
+    auth paths; each translates `None` into its own transport-appropriate
+    rejection (401 vs. close code 4401). Never raises.
+    """
+    try:
+        payload = decode_access_token(token)
+        user_id = uuid.UUID(payload["sub"])
+        return db.get(User, user_id)
+    except (jwt.PyJWTError, KeyError, ValueError, SQLAlchemyError):
+        return None
+
+
 def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
     db: Session = Depends(get_db),
@@ -41,13 +57,7 @@ def get_current_user(
     if credentials is None:
         raise _UNAUTHORIZED
 
-    try:
-        payload = decode_access_token(credentials.credentials)
-        user_id = uuid.UUID(payload["sub"])
-    except (jwt.PyJWTError, KeyError, ValueError) as exc:
-        raise _UNAUTHORIZED from exc
-
-    user = db.get(User, user_id)
+    user = resolve_user_from_token(credentials.credentials, db)
     if user is None:
         raise _UNAUTHORIZED
 

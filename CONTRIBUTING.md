@@ -66,6 +66,32 @@ The Backend's auth substrate (Story 0.2) signs JWT bearer tokens with `JWT_SECRE
 JWT_SECRET_KEY="some-other-dev-secret" uv run uvicorn app.main:app --reload
 ```
 
+### Artifact indexing env var
+
+The Backend's artifact indexing engine (Story 1.1) scans `ARTIFACT_ROOT` for BMAD artifacts. Like `DATABASE_URL`/`JWT_SECRET_KEY`, it follows the same explicit-env-var convention: CI sets it explicitly (`.github/workflows/ci.yml`), local dev falls back to this repo's own `prjdocs/` directory (see `backend/app/indexing/config.py` / `.env.example`). To override it locally:
+
+```bash
+ARTIFACT_ROOT="/path/to/other/artifact/root" uv run python -m app.indexing.cli
+```
+
+### CORS / IHM origin env var
+
+The Backend allows cross-origin requests from the IHM (Story 1.2, `GET /artifacts/health` and any future browser-facing route) via `IHM_ORIGIN`. Same explicit-env-var convention as `JWT_SECRET_KEY`/`ARTIFACT_ROOT`: CI sets it explicitly (`.github/workflows/ci.yml`), local dev falls back to the IHM's default dev port (`http://localhost:3000`, see `backend/app/config.py` / `.env.example`). Only needs overriding if you run the IHM on a different port:
+
+```bash
+IHM_ORIGIN="http://localhost:3001" uv run uvicorn app.main:app --reload
+```
+
+### Artifact indexing walkthrough
+
+With PostgreSQL up and migrations applied (`uv run alembic upgrade head`), run a one-shot scan:
+
+```bash
+uv run python -m app.indexing.cli
+```
+
+This walks `ARTIFACT_ROOT`, classifies each matched file by its directory/filename convention (Brief, PRD, Architecture, UX, Specs, Epics, Stories — see `app/indexing/types.py`), parses its frontmatter, and upserts the `artifacts`/`artifact_links` tables. It's idempotent: re-running after no changes reports everything as `unchanged`; a malformed frontmatter block is caught per-file and recorded on that row's `error` column rather than aborting the run. There is no HTTP endpoint yet — Stories 1.2/1.3 add read endpoints when the dashboard/matrix need to serve this data.
+
 ### Auth walkthrough (curl)
 
 With the Backend running (`uv run uvicorn app.main:app --reload`) and PostgreSQL up, exercise register → login → the role-gated `/admin/ping` route:
@@ -112,6 +138,14 @@ uv run ruff check .
 uv run pytest
 ```
 
+### Client env vars
+
+The Client agent had zero env-driven config until Story 2.1's WebSocket module (`client/agent/realtime.py`). **Note:** `connect_and_run` itself takes `url`/`token`/`heartbeat_interval` as plain function parameters and does not read these env vars directly — they document the values a future story's `main.py` wiring (Story 2.2+) is expected to read and pass in. Same explicit-env-var convention as the Backend's vars above; local dev falls back to the documented defaults below (see `client/.env.example`):
+
+- `BACKEND_WS_URL` — the Backend's WebSocket endpoint, default `ws://localhost:8000/ws`.
+- `HEARTBEAT_INTERVAL_SECONDS` — seconds between heartbeat messages, default `10`.
+- `BMAD_AUTH_TOKEN` — **temporary stand-in** for a real Client identity/auth flow (Story 2.3 will replace this): hand-copy a bearer token from the [Auth walkthrough](#auth-walkthrough-curl) below.
+
 ## 4. IHM (Next.js)
 
 ```bash
@@ -128,6 +162,62 @@ Lint and test:
 npm run lint
 npm test
 ```
+
+### IHM env var
+
+The IHM calls the Backend at `NEXT_PUBLIC_API_BASE_URL` (`ihm/lib/auth.ts`, Story 1.2). Next.js reads `.env*` from this app directory (not the repo root) and inlines `NEXT_PUBLIC_*` vars at build time; the default below (in code, not requiring the var to be set) already matches the Backend's local dev server:
+
+```bash
+NEXT_PUBLIC_API_BASE_URL="http://localhost:8000" npm run dev
+```
+
+The IHM's WebSocket module (`ihm/lib/websocket.ts`, Story 2.1) reads `NEXT_PUBLIC_WS_BASE_URL` the same way, defaulting to `ws://localhost:8000/ws`:
+
+```bash
+NEXT_PUBLIC_WS_BASE_URL="ws://localhost:8000/ws" npm run dev
+```
+
+### Artifact Health Dashboard walkthrough
+
+With the Backend running (`uv run uvicorn app.main:app --reload`), PostgreSQL up, artifacts indexed (`uv run python -m app.indexing.cli`, from `backend/`), and the IHM running (`npm run dev`, from `ihm/`):
+
+1. Open `http://localhost:3000/login` and sign in with a user registered via the [Auth walkthrough](#auth-walkthrough-curl) above (or the `curl`/`register` call directly).
+2. On success you're redirected to `http://localhost:3000/artifacts`, which calls `GET /artifacts/health` and renders two tables: a per-type completeness rollup (all 11 FR1 types, `complete`/`incomplete`/`missing`) and a per-artifact table (type, title, file path, sync status against disk, and outbound links — broken links render distinctly rather than being dropped).
+3. To see a `stale`/`deleted` sync status live: edit or delete an already-indexed file under `ARTIFACT_ROOT` without re-running the CLI scan, then reload `/artifacts`.
+
+### Traceability Matrix walkthrough
+
+With the Backend running (`uv run uvicorn app.main:app --reload`), PostgreSQL up, artifacts indexed (`uv run python -m app.indexing.cli`, from `backend/`), and the IHM running (`npm run dev`, from `ihm/`):
+
+1. Call `GET /artifacts/traceability` directly (with a bearer token from the [Auth walkthrough](#auth-walkthrough-curl)), or open `http://localhost:3000/artifacts/traceability` (linked from `/artifacts`) after signing in.
+2. Either way you get one row per Epic/Story pair defined in `prjdocs/planning-artifacts/epics.md`'s roadmap — not just the ones with a story file on disk — with a status per lineage stage: `idea_brief`/`prd`/`architecture`/`ux` reflect that type's overall completeness (same value on every row), `story` reflects the matching indexed Story file's own `completed`/`pending`/`not_started` state, and `prs`/`tests` are always `not_started` in this MVP (no Git/PR integration yet).
+
+### Real-time WebSocket Pillar walkthrough
+
+There is no clickable UI yet for Story 2.1 (Task 5 deliberately doesn't wire `ihm/lib/websocket.ts` into any page — Story 3.3's Real-time Status Bar will do that). The verification path is manual: open two authenticated WebSocket connections against the Backend and observe the presence broadcast when the second one connects/disconnects.
+
+With the Backend running (`uv run uvicorn app.main:app --reload`) and PostgreSQL up:
+
+1. Register + log in two users (reuse the [Auth walkthrough](#auth-walkthrough-curl) above) to get two bearer tokens, `TOKEN_A` and `TOKEN_B`.
+2. Open the first connection, e.g. with the Client's own `websockets` dependency (from `client/`, after `uv sync`):
+
+   ```bash
+   uv run python -c "
+   import asyncio, websockets
+
+   async def main():
+       async with websockets.connect('ws://localhost:8000/ws?token=$TOKEN_A') as ws:
+           async for message in ws:
+               print(message)
+
+   asyncio.run(main())
+   "
+   ```
+
+   (Alternatively, any WebSocket CLI you already have works the same way, e.g. `websocat "ws://localhost:8000/ws?token=$TOKEN_A"`.)
+
+3. In a second terminal, open the same command with `TOKEN_B`. The first terminal prints a `{"type": "presence", "event": "connected", "user_id": "<user_b's id>"}` message.
+4. Ctrl-C the second terminal. The first prints `{"type": "presence", "event": "disconnected", "user_id": "<user_b's id>"}`.
 
 ## CI
 

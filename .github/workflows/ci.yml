@@ -23,6 +23,12 @@ jobs:
       # Explicit, same rationale as DATABASE_URL above, rather than relying
       # on app/config.py's local-dev fallback.
       JWT_SECRET_KEY: ci-test-jwt-secret-key
+      # Explicit, same rationale as DATABASE_URL above, rather than relying
+      # on app/indexing/config.py's local-dev fallback.
+      ARTIFACT_ROOT: ${{ github.workspace }}/prjdocs
+      # Explicit, same rationale as DATABASE_URL above, rather than relying
+      # on app/config.py's local-dev fallback.
+      IHM_ORIGIN: http://localhost:3000
     services:
       postgres:
         image: postgres:18

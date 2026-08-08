@@ -9,8 +9,10 @@ dependencies = [
     "fastapi==0.141.*",
     "pyjwt>=2.10.1",
     "psycopg[binary]>=3.3.4",
+    "pyyaml>=6.0.3",
     "sqlalchemy>=2.0.51",
     "uvicorn[standard]>=0.52.1",
+    "websockets>=17,<18",
 ]
 
 [dependency-groups]

@@ -3,7 +3,9 @@ name = "client"
 version = "0.1.0"
 description = "BMad Portal Client agent (CLI)"
 requires-python = ">=3.13,<3.14"
-dependencies = []
+dependencies = [
+    "websockets>=17,<18",
+]
 
 [tool.ruff]
 line-length = 100

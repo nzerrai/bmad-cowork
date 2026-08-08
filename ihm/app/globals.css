@@ -1,26 +1,32 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* DESIGN.md ("BMad Portal (Hub)", Modern Command theme): dark-only,
+   deliberately — no light-theme media query. Values copied verbatim from
+   DESIGN.md's frontmatter `colors:` block. */
+@theme {
+  --color-background: #0a1120;
+  --color-foreground: #e7ecf6;
+  --color-surface: #121b30;
+  --color-surface-elevated: #182544;
+  --color-surface-inset: #1c2b4d;
+  --color-border: #24314f;
+  --color-border-soft: #1b2843;
+  --color-text-secondary: #96a3c2;
+  --color-text-faint: #5f6d8f;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-success: #34d399;
+  --color-warning: #f5a524;
+  --color-error: #fb6478;
+  --color-info: #38bdf8;
+  --color-action: #8b8cf8;
+  --color-neutral: #7885a3;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
 }

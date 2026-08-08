@@ -520,6 +520,127 @@ So that access and permissions stay accurate as the team changes, covering platf
 
 ---
 
+## Epic 7: VS Code Plugin - IDE Integration & Dashboard Display
+Une option d'interaction supplémentaire via un plugin VS Code avec polling configurable et affichage des dashboards HUB via Web Views, offrant la parité de fonctionnalités de base avec le Client Python (Epic 2) mais dans une expérience IDE intégrée.
+
+**FRs covered:** FR4, FR5, FR10 (polling configurable vs Git hooks), FR13, FR14, FR20 (dashboard display via Web Views), FR23 (notifications VS Code)
+
+**Implementation Notes:** Cette epic est une capacité d'interface additionnelle qui réutilise le même Backend Hub que les Epics 0-6. Elle offre le choix entre Client Python (Epic 2) et Plugin VS Code (Epic 7). Le polling configurable (défaut 5 min) remplace ou complète le mécanisme Git hooks du Client Python. Les Web Views reproduisent les dashboards HUB existants.
+
+### Story 7.1: VS Code Extension Skeleton & `package.json` Setup
+
+As a VS Code Plugin Developer,
+I want to create the base structure of the BMad Portal VS Code extension,
+So that the plugin has proper VS Code contributions, commands, and settings configuration.
+
+**Acceptance Criteria:**
+
+**Given** the VS Code extension project structure
+**When** the `package.json` is configured
+**Then** it defines proper VS Code contributions (commands, settings, webviews, status bar widget)
+**And** the configuration section defines all setup parameters (backendHubUrl, repoPollingIntervalSec, authMethod, dashboardDisplayMode, etc.)
+**And** the extension is buildable and installable in VS Code
+
+### Story 7.2: Configurable Repo Polling Engine (Default 5 min)
+
+As a VS Code Plugin User,
+I want my plugin to poll the local repo state at a configurable interval (default 5 minutes),
+So that my Git state is reported to the Backend Hub without needing Git hooks.
+
+**Acceptance Criteria:**
+
+**Given** the VS Code extension is running
+**When** the polling engine starts
+**Then** it uses `vscode.git` API to detect local repo state (branches, commits ahead/behind, in-progress actions)
+**And** it polls at the interval specified in settings (`bmadPortal.repoPollingIntervalSec`, default 300 seconds)
+**And** it reports the state to the Backend Hub via WebSocket or HTTP REST API
+
+### Story 7.3: Event-Driven Git Polling Override
+
+As a VS Code Plugin User,
+I want the plugin to force an immediate repo state upload if a Git event is detected between polling intervals,
+So that my state is accurate even between scheduled polls.
+
+**Acceptance Criteria:**
+
+**Given** the polling engine is running
+**When** a Git event is detected (commit, checkout, merge start)
+**Then** the plugin can trigger an immediate state upload to the Backend Hub (if `bmadPortal.enableEventDrivenPolling` is true)
+**And** the next scheduled poll is not disrupted
+
+### Story 7.4: VS Code Secret Storage for JWT Management
+
+As a VS Code Plugin Developer,
+I want to store JWT tokens securely using VS Code Secret Storage,
+So that user credentials are never exposed or stored in plain text.
+
+**Acceptance Criteria:**
+
+**Given** the user is authenticated with the Backend Hub
+**When** a JWT token is received
+**Then** it is stored in `vscode.SecretStorage` (not in plain settings or config files)
+**And** the token is retrieved securely for subsequent WebSocket/HTTP requests
+**And** token expiration or invalidation triggers a re-authentication flow
+
+### Story 7.5: Web View Provider Setup for Sidebar Dashboard
+
+As a VS Code Plugin User,
+I want to see a persistent sidebar panel with the HUB dashboard navigation,
+So that I can access dashboard widgets without leaving VS Code.
+
+**Acceptance Criteria:**
+
+**Given** the VS Code extension is activated
+**When** the user opens the BMad Portal dashboard
+**Then** a `WebviewViewProvider` is displayed in the sidebar with navigation arborescence (Dashboard Overview, My Claims, Risk Signals, Sprint Status)
+**And** clicking navigation items updates the Web View content
+**And** the Web View respects VS Code themes (light/dark) and accessibility standards (WCAG AA)
+
+### Story 7.6: Dashboard Widgets Integration (Repo State, Claims, Risk Signals)
+
+As a VS Code Plugin User,
+I want to see HUB dashboard widgets (repo state, active claims, risk signals) in the VS Code Web Views,
+So that I have the same visibility as the main HUB IHM.
+
+**Acceptance Criteria:**
+
+**Given** the Web View dashboard is open
+**When** data is fetched from the Backend Hub (WebSocket or HTTP)
+**Then** the Repo State widget shows local drift, sync status, and Git actions
+**And** the Claims widget shows active leases and available stories
+**And** the Risk Signals widget shows stale tasks, conflict modules, and PRs awaiting review
+**And** the dashboard refreshes according to `bmadPortal.dashboardRefreshIntervalSec`
+
+### Story 7.7: Claims Visualization & Command Palette Integration
+
+As a VS Code Plugin User,
+I want to see feature suggestions based on my claims/role and access them via Command Palette,
+So that I can take advantage of permissions authorized for my role.
+
+**Acceptance Criteria:**
+
+**Given** the user's JWT claims are resolved (role, permissions)
+**When** the plugin processes claims
+**Then** a Status Bar widget displays sync status and user role (e.g., "🟢 Synced | Dev: [username]")
+**And** the Command Palette includes `BMad Portal: Show Suggested Features`
+**And** non-intrusive Toast notifications appear for claims events (expiration, new available features)
+
+### Story 7.8: VS Code Plugin Setup & Onboarding UX
+
+As a VS Code Plugin User,
+I want a smooth onboarding experience and easy access to plugin settings,
+So that I can configure the plugin without technical friction.
+
+**Acceptance Criteria:**
+
+**Given** the plugin is first installed or activated
+**When** the user opens VS Code Settings → Extensions → BMad Portal Hub
+**Then** all configuration parameters are exposed via VS Code Settings UI (not raw JSON)
+**And** default values are sensible (polling interval 300s, dashboard display sidebarView, claims suggestions enabled)
+**And** the setup experience respects VS Code accessibility and theme guidelines
+
+---
+
 ## 🔜 Post-MVP (Différé) : Copilot IA
 
 Différé depuis le 2026-08-05 (PRD §7) — non abandonné, repris une fois le socle déterministe (indexation, sync, claims, sprint, risques/qualité) livré. Aucune epic/story générée pour ce périmètre dans le MVP actuel.

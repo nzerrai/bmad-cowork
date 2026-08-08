@@ -56,8 +56,10 @@ dependencies = [
     { name = "fastapi" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pyjwt" },
+    { name = "pyyaml" },
     { name = "sqlalchemy" },
     { name = "uvicorn", extra = ["standard"] },
+    { name = "websockets" },
 ]
 
 [package.dev-dependencies]
@@ -74,8 +76,10 @@ requires-dist = [
     { name = "fastapi", specifier = "==0.141.*" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.3.4" },
     { name = "pyjwt", specifier = ">=2.10.1" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "sqlalchemy", specifier = ">=2.0.51" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.52.1" },
+    { name = "websockets", specifier = ">=17,<18" },
 ]
 
 [package.metadata.requires-dev]

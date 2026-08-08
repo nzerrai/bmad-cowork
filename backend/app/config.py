@@ -13,3 +13,7 @@ import os
 JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY") or "dev-only-insecure-secret-do-not-use-in-prod"
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_MINUTES = 60
+
+# The IHM's origin, allowed for cross-origin browser requests (Story 1.2
+# Task 4). Same explicit-env-var convention as JWT_SECRET_KEY above.
+IHM_ORIGIN = os.environ.get("IHM_ORIGIN") or "http://localhost:3000"
