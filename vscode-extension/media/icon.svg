@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+  <!--
+    Monochrome activity-bar view container icon. VS Code recolors
+    activity-bar icons to match the current theme, so this uses a single
+    flat fill (no color assumptions) per VS Code's icon guidelines.
+  -->
+  <path
+    fill="#000000"
+    fill-rule="evenodd"
+    clip-rule="evenodd"
+    d="M12 1.5 2.75 6.25v11.5L12 22.5l9.25-4.75V6.25L12 1.5Zm0 2.24 6.75 3.47L12 10.68 5.25 7.21 12 3.74ZM4.25 8.68l7 3.6v7.94l-7-3.6V8.68Zm8.5 11.54v-7.94l7-3.6v7.94l-7 3.6Z"
+  />
+</svg>

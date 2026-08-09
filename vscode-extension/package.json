@@ -1,0 +1,105 @@
+{
+  "name": "bmad-portal-vscode",
+  "displayName": "BMad Portal",
+  "description": "IDE-native access to the BMad Portal Backend Hub: repo state polling, claims, and dashboard Web Views inside VS Code.",
+  "version": "0.0.1",
+  "private": true,
+  "publisher": "bmad-portal",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nzerrai/bmad-cowork.git",
+    "directory": "vscode-extension"
+  },
+  "engines": {
+    "vscode": "^1.85.0",
+    "node": ">=22.3.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "bmadPortal.showDashboard",
+        "title": "BMad Portal: Show Dashboard"
+      },
+      {
+        "command": "bmadPortal.showSuggestedFeatures",
+        "title": "BMad Portal: Show Suggested Features"
+      }
+    ],
+    "configuration": {
+      "title": "BMad Portal",
+      "properties": {
+        "bmadPortal.backendHubUrl": {
+          "type": "string",
+          "default": "http://localhost:8000",
+          "description": "Base URL of the BMad Portal Backend Hub this extension connects to (WebSocket/REST)."
+        },
+        "bmadPortal.repoPollingIntervalSec": {
+          "type": "number",
+          "default": 300,
+          "description": "Interval, in seconds, at which the extension polls local repo state (via vscode.git) and reports it to the Backend Hub."
+        },
+        "bmadPortal.authMethod": {
+          "type": "string",
+          "default": "jwt",
+          "description": "Authentication method used to obtain the session token stored in VS Code Secret Storage."
+        },
+        "bmadPortal.dashboardDisplayMode": {
+          "type": "string",
+          "default": "sidebarView",
+          "description": "How the BMad Portal dashboard is displayed."
+        },
+        "bmadPortal.enableEventDrivenPolling": {
+          "type": "boolean",
+          "default": true,
+          "description": "When true, a detected local Git event (commit, checkout, merge start) triggers an immediate state upload to the Backend Hub without disrupting the next scheduled poll."
+        },
+        "bmadPortal.dashboardRefreshIntervalSec": {
+          "type": "number",
+          "default": 60,
+          "description": "Interval, in seconds, at which dashboard Web View widgets (repo state, claims, risk signals) refresh their data from the Backend Hub."
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "bmadPortal-sidebar",
+          "title": "BMad Portal",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "bmadPortal-sidebar": [
+        {
+          "type": "webview",
+          "id": "bmadPortal.dashboardView",
+          "name": "Dashboard"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -w -p ./",
+    "lint": "eslint src test --max-warnings=0",
+    "pretest": "npm run compile",
+    "test": "node --experimental-test-module-mocks --test test/*.test.mjs",
+    "vscode:prepublish": "npm run compile",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9",
+    "@types/node": "^20",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3",
+    "eslint": "^9",
+    "typescript": "^5",
+    "typescript-eslint": "^8",
+    "vscode": "file:test/stubs/vscode"
+  }
+}

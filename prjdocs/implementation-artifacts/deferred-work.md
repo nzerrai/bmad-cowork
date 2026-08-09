@@ -107,3 +107,13 @@
 - source_spec: `2-5-continuous-local-repo-state-reporting.md`
   summary: `check_repo_access` docstring misleading about git operations.
   evidence: Code review confirmed the `check_repo_access` function's docstring claims it would involve attempting git ls-remote or git clone operations to verify read access, but the implementation only validates URL pattern matching without any actual git operations, making the docstring misleading.
+
+## Deferred from: code review of story-7-1-vscode-extension-skeleton-and-packagejson-setup (2026-08-09)
+
+- source_spec: `spec-7-1-vscode-extension-skeleton-and-packagejson-setup.md`
+  summary: The pre-existing `ihm` CI job (unmodified by this story) pins `node-version: '20'`, but `ihm/package.json`'s `test` script uses `node:test`'s `--experimental-test-module-mocks`, which requires Node >= 22.3.0 — the same constraint this story's new `vscode-extension` job was pinned to Node 22 specifically to satisfy.
+  evidence: Blind-hunter, edge-case-hunter, verification-gap, and intent-alignment review layers all independently flagged this. Confirmed by inspection: `.github/workflows/ci.yml`'s `ihm` job (line ~96, untouched by this diff) sets `node-version: '20'`; `ihm/package.json`'s `test` script includes the same experimental flag this story's own new CONTRIBUTING.md/README.md text documents as requiring Node >= 22.3. Since CI has never executed on a real GitHub Actions run yet (no push to remote), this may already be silently broken; not this story's problem to fix (out of scope — the `ihm` tier belongs to Epic 1, not Epic 7), but worth a focused fix (bump `ihm`'s job to Node 22, or drop the flag) before the next real CI run.
+
+- source_spec: `spec-7-1-vscode-extension-skeleton-and-packagejson-setup.md`
+  summary: No `LICENSE`/`LICENSE.md`/`LICENSE.txt` file exists anywhere in the repository, which `vsce package` now surfaces as an explicit (non-fatal) warning on every `vscode-extension` packaging run.
+  evidence: Blind-hunter review flagged the warning; confirmed by directly running `npm run package` in `vscode-extension/`, which prints `WARNING LICENSE, LICENSE.md, or LICENSE.txt not found` before packaging successfully. Pre-existing repo-wide gap (not introduced by this story), only made visibly actionable because this is the first tier whose build tooling checks for one.

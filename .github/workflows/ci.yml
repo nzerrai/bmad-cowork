@@ -108,3 +108,39 @@ jobs:
 
       - name: Test
         run: npm test
+
+  vscode-extension:
+    name: VS Code Extension (lint + compile + test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: vscode-extension
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Not '20' like the IHM job: `npm test` uses node:test's
+          # `--experimental-test-module-mocks`, only available from Node
+          # 22.3.0 onward.
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: vscode-extension/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint (eslint)
+        run: npm run lint
+
+      - name: Compile (tsc)
+        run: npm run compile
+
+      - name: Test
+        run: npm test
+
+      - name: Package (vsce)
+        run: |
+          npm run package
+          rm -f *.vsix

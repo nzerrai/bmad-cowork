@@ -1,10 +1,11 @@
 # BMad Portal Hub
 
-A three-tier system for tracking and coordinating BMad-driven development work:
+A four-tier system for tracking and coordinating BMad-driven development work:
 
 - **`client/`** — a Python agent that runs on a developer's machine, owning the local filesystem and Git operations.
 - **`backend/`** — a FastAPI service that owns orchestration and temporal state (sessions, leases, artifact index) backed by PostgreSQL.
 - **`ihm/`** — a Next.js/React dashboard for visualizing project state.
+- **`vscode-extension/`** — a VS Code extension that reports local Git/repo state to the Backend Hub and reproduces the IHM's dashboards inside VS Code Web Views.
 
 For the full product picture (epics, requirements, architecture), see [`prjdocs/planning-artifacts/epics.md`](prjdocs/planning-artifacts/epics.md).
 
@@ -14,7 +15,7 @@ This repository has completed **Epic 0: Project Scaffolding & Dev Environment** 
 
 ## Getting Started
 
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) for exact steps to run all three services locally, plus local PostgreSQL setup.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for exact steps to run all four tiers locally, plus local PostgreSQL setup.
 
 ## Stack
 
@@ -26,5 +27,7 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for exact steps to run all three servic
 | IHM | Next.js | 16.3 |
 | IHM | React | 19.x |
 | IHM | Node.js | >= 20.9 (Next.js 16.3's minimum) |
+| VS Code Extension | TypeScript | ^5 |
+| VS Code Extension | Node.js | >= 20.9 to build; `npm test` needs >= 22.3 (`node:test`'s `--experimental-test-module-mocks`, same as IHM) |
 
 Versions are pinned per the project's architecture spine — do not substitute "latest stable" equivalents.
