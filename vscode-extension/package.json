@@ -1,0 +1,127 @@
+{
+  "name": "bmad-portal-vscode",
+  "displayName": "BMad Portal Hub",
+  "description": "VS Code extension for BMad Portal Hub - IDE Integration & Dashboard Display",
+  "version": "0.0.1",
+  "publisher": "bmad-portal",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bmad-portal/bmad-portal.git"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "bmad-portal.refreshDashboard",
+        "title": "BMad Portal: Refresh Dashboard"
+      },
+      {
+        "command": "bmad-portal.openDashboard",
+        "title": "BMad Portal: Open Dashboard"
+      },
+      {
+        "command": "bmad-portal.disconnect",
+        "title": "BMad Portal: Disconnect from Backend"
+      },
+      {
+        "command": "bmad-portal.reconnect",
+        "title": "BMad Portal: Reconnect to Backend"
+      }
+    ],
+    "configuration": {
+      "title": "BMad Portal Hub",
+      "properties": {
+        "bmadPortal.backendHubUrl": {
+          "type": "string",
+          "default": "http://localhost:3000",
+          "description": "URL of the BMad Portal Backend Hub"
+        },
+        "bmadPortal.repoPollingIntervalSec": {
+          "type": "number",
+          "default": 30,
+          "description": "Interval in seconds for repository polling (when not using websockets)"
+        },
+        "bmadPortal.authMethod": {
+          "type": "string",
+          "enum": [
+            "jwt",
+            "session",
+            "oauth"
+          ],
+          "default": "session",
+          "description": "Authentication method to use with the backend"
+        },
+        "bmadPortal.dashboardDisplayMode": {
+          "type": "string",
+          "enum": [
+            "sidebar",
+            "panel",
+            "webview"
+          ],
+          "default": "sidebar",
+          "description": "Display mode for the dashboard widget"
+        },
+        "bmadPortal.autoConnect": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically connect to the backend hub on startup"
+        },
+        "bmadPortal.enableNotifications": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable notifications for BMad Portal events"
+        }
+      }
+    },
+    "views": {
+      "explorer": [
+        {
+          "id": "bmadPortalDashboard",
+          "name": "BMad Portal Dashboard",
+          "when": "bmadPortal.connected"
+        }
+      ]
+    },
+    "statusBar": {
+      "defaultIcon": {
+        "light": "$(server)",
+        "dark": "$(server)"
+      },
+      "name": "BMad Portal Status",
+      "alignment": "right",
+      "priority": 100
+    },
+    "webviewViews": {
+      "bmadPortal.dashboard": {
+        "type": "webview",
+        "view": "bmadPortalDashboard",
+        "name": "Dashboard View",
+        "icon": "$(dashboard)"
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./tsconfig.json",
+    "watch": "tsc -watch -p ./tsconfig.json",
+    "package": "vsce package",
+    "lint": "eslint src --ext ts",
+    "pretest": "npm run compile && npm run lint"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^2.24.0",
+    "eslint": "^8.57.0",
+    "typescript": "^5.4.3"
+  }
+}
