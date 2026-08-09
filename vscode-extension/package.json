@@ -47,8 +47,8 @@
         },
         "bmadPortal.repoPollingIntervalSec": {
           "type": "number",
-          "default": 30,
-          "description": "Interval in seconds for repository polling (when not using websockets)"
+          "default": 300,
+          "description": "Interval in seconds for repository polling (default 5 minutes / 300s)"
         },
         "bmadPortal.authMethod": {
           "type": "string",

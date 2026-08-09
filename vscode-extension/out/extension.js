@@ -39,13 +39,23 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.stateReporter = exports.gitPoller = void 0;
 exports.activate = activate;
 exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
+const git_poller_1 = require("./git-poller");
+const state_reporter_1 = require("./state-reporter");
 function activate(context) {
+    // Initialize state reporter and git poller
+    exports.stateReporter = new state_reporter_1.StateReporter(context);
+    exports.gitPoller = new git_poller_1.GitPoller(context);
     // Register commands
     const refreshDashboardCommand = vscode.commands.registerCommand('bmad-portal.refreshDashboard', async () => {
         vscode.window.showInformationMessage('BMad Portal: Dashboard refresh triggered');
+        // Force immediate poll
+        if (exports.gitPoller) {
+            await exports.gitPoller['pollGitState']();
+        }
     });
     const openDashboardCommand = vscode.commands.registerCommand('bmad-portal.openDashboard', async () => {
         vscode.window.showInformationMessage('BMad Portal: Opening dashboard');
@@ -54,11 +64,19 @@ function activate(context) {
         vscode.window.showInformationMessage('BMad Portal: Disconnecting from backend');
         // State update for view visibility
         vscode.commands.executeCommand('setContext', 'bmadPortal.connected', false);
+        // Stop polling
+        if (exports.gitPoller) {
+            exports.gitPoller.stop();
+        }
     });
     const reconnectCommand = vscode.commands.registerCommand('bmad-portal.reconnect', async () => {
         vscode.window.showInformationMessage('BMad Portal: Reconnecting to backend');
         // State update for view visibility
         vscode.commands.executeCommand('setContext', 'bmadPortal.connected', true);
+        // Start polling
+        if (exports.gitPoller) {
+            exports.gitPoller.start();
+        }
     });
     context.subscriptions.push(refreshDashboardCommand, openDashboardCommand, disconnectCommand, reconnectCommand);
     // Initialize extension state
@@ -68,9 +86,22 @@ function activate(context) {
     vscode.window.showInformationMessage(`BMad Portal Hub extension activated. Backend: ${backendHubUrl}`);
     // Set initial connected state
     vscode.commands.executeCommand('setContext', 'bmadPortal.connected', true);
+    // Start the Git polling engine
+    if (exports.gitPoller) {
+        exports.gitPoller.start();
+        // Listen for state changes and report to backend
+        exports.gitPoller.onStateChange(async (state) => {
+            if (exports.stateReporter) {
+                await exports.stateReporter.reportGitState(state);
+            }
+        });
+    }
 }
 function deactivate() {
     // Cleanup on extension deactivation
+    if (exports.gitPoller) {
+        exports.gitPoller.stop();
+    }
     vscode.window.showInformationMessage('BMad Portal Hub extension deactivated');
 }
 //# sourceMappingURL=extension.js.map
