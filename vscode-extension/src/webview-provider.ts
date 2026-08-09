@@ -8,6 +8,7 @@ import * as vscode from 'vscode';
 import { getWebviewContent } from './webview-content';
 import { AuthManager } from './auth-manager';
 import { JwtStorageManager } from './jwt-storage';
+import { ApiClient, DashboardData } from './api-client';
 
 export class DashboardWebviewViewProvider implements vscode.WebviewViewProvider {
 	public static readonly viewType = 'bmadPortal.dashboard';
@@ -15,6 +16,7 @@ export class DashboardWebviewViewProvider implements vscode.WebviewViewProvider 
 	private _view?: vscode.WebviewView;
 	private _authManager?: AuthManager;
 	private _jwtStorage?: JwtStorageManager;
+	private _apiClient?: ApiClient;
 
 	constructor(
 		private readonly _context: vscode.ExtensionContext,
@@ -23,6 +25,10 @@ export class DashboardWebviewViewProvider implements vscode.WebviewViewProvider 
 	) {
 		this._authManager = authenticatedAuthManager;
 		this._jwtStorage = authenticatedJwtStorage;
+
+		// Initialize API client with Backend Hub base URL
+		const backendBaseUrl = vscode.workspace.getConfiguration('bmadPortal').get('backendUrl', 'https://api.bmad-portal.com');
+		this._apiClient = new ApiClient(backendBaseUrl, null);
 	}
 
 	public resolveWebviewView(webviewView: vscode.WebviewView): void | Thenable<void> {
@@ -74,18 +80,18 @@ export class DashboardWebviewViewProvider implements vscode.WebviewViewProvider 
 				return;
 			}
 
-			// TODO: Fetch actual dashboard data from Backend Hub using JWT token
-			// For now, send mock data structure
-			const dashboardData = {
-				status: 'connected',
-				repoState: {
-					syncStatus: 'synced',
-					ahead: 0,
-					behind: 0
-				},
-				claims: [],
-				riskSignals: []
-			};
+			// Update API client with JWT token
+			if (this._apiClient) {
+				this._apiClient.setJwtToken(jwtToken);
+			}
+
+			// Fetch actual dashboard data from Backend Hub using JWT token
+			const apiClient = this._apiClient;
+			if (!apiClient) {
+				throw new Error('API client not initialized');
+			}
+
+			const dashboardData: DashboardData = await apiClient.getDashboardData();
 
 			if (this._view) {
 				this._view.webview.postMessage({
@@ -95,6 +101,13 @@ export class DashboardWebviewViewProvider implements vscode.WebviewViewProvider 
 			}
 		} catch (error) {
 			console.error('Error fetching dashboard data:', error);
+
+			// Handle authentication errors by triggering re-authentication
+			if (error instanceof Error && (error.message.includes('JWT token expired or invalid') || error.message.includes('No JWT token available'))) {
+				await this._handleReauthenticate();
+				return;
+			}
+
 			if (this._view) {
 				this._view.webview.postMessage({
 					command: 'dashboardDataError',

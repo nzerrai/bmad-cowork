@@ -247,31 +247,69 @@ export function getWebviewContent(webview: vscode.Webview, extensionUri: vscode.
 			// Show dashboard data
 			document.getElementById('dashboard-data').style.display = 'block';
 
+			// Show staleness indicator if data is stale
+			if (data.isStale && data.lastKnownTime) {
+				const stalenessEl = document.createElement('div');
+				stalenessEl.className = 'dashboard-staleness';
+				stalenessEl.textContent = data.lastKnownTime;
+				stalenessEl.style.padding = '8px 16px';
+				stalenessEl.style.backgroundColor = 'var(--warning-color)';
+				stalenessEl.style.color = 'var(--text-color)';
+				stalenessEl.style.borderRadius = '4px';
+				stalenessEl.style.marginBottom = '16px';
+				document.getElementById('dashboard-data').prepend(stalenessEl);
+			}
+
 			// Update repo state
 			if (data.repoState) {
 				const syncStatusEl = document.getElementById('sync-status');
 				syncStatusEl.className = 'status-indicator status-' + data.repoState.syncStatus;
-				syncStatusEl.textContent = data.repoState.syncStatus.charAt(0).toUpperCase() + data.repoState.syncStatus.slice(1).replace('-', ' ');
+
+				// Format sync status for display
+				const syncStatusText = data.repoState.syncStatus === 'Idle-Offline' ? 'Idle-Offline' :
+					data.repoState.syncStatus.charAt(0).toUpperCase() + data.repoState.syncStatus.slice(1).replace('-', ' ');
+				syncStatusEl.textContent = syncStatusText;
 
 				const repoDetailsEl = document.getElementById('repo-details');
-				repoDetailsEl.textContent = 'Ahead: ' + (data.repoState.ahead || 0) + ', Behind: ' + (data.repoState.behind || 0);
+				let details = 'Ahead: ' + (data.repoState.ahead || 0) + ', Behind: ' + (data.repoState.behind || 0);
+				if (data.repoState.hasInProgressRebase) {
+					details += ' | Rebase in progress';
+				}
+				if (data.repoState.hasInProgressMerge) {
+					details += ' | Merge in progress';
+				}
+				if (data.repoState.hasInProgressConflict) {
+					details += ' | Conflict detected';
+				}
+				repoDetailsEl.textContent = details;
 			}
 
-			// Update claims (placeholder)
-			if (data.claims) {
+			// Update claims
+			if (data.claims !== undefined) {
 				const claimsEl = document.getElementById('claims-content');
 				if (data.claims.length > 0) {
-					claimsEl.innerHTML = '<p>Active claims: ' + data.claims.length + '</p>';
+					const claimsList = data.claims.map(claim => {
+						const statusText = claim.status === 'active' ? 'Active' :
+							claim.status === 'available' ? 'Available' : 'Expired';
+						return '<li>' + claim.title + ' (' + statusText + ')' + (claim.expiration ? ' - Expires: ' + claim.expiration : '') + '</li>';
+					}).join('');
+					claimsEl.innerHTML = '<ul style="margin: 0; padding-left: 20px;">' + claimsList + '</ul>';
 				} else {
 					claimsEl.innerHTML = '<p>No active claims or available features.</p>';
 				}
 			}
 
-			// Update risk signals (placeholder)
-			if (data.riskSignals) {
+			// Update risk signals
+			if (data.riskSignals !== undefined) {
 				const riskSignalsEl = document.getElementById('risk-signals-content');
 				if (data.riskSignals.length > 0) {
-					riskSignalsEl.innerHTML = '<p>Risk signals detected: ' + data.riskSignals.length + '</p>';
+					const riskList = data.riskSignals.map(signal => {
+						const typeText = signal.type === 'stale-story' ? 'Stale Story (> ' + signal.thresholdDays + ' days)' :
+							signal.type === 'awaiting-review' ? 'PR Awaiting Review (> ' + signal.thresholdDays + ' hours)' :
+							'Conflict Risk Module';
+						return '<li>' + signal.description + ' (' + typeText + ')</li>';
+					}).join('');
+					riskSignalsEl.innerHTML = '<ul style="margin: 0; padding-left: 20px;">' + riskList + '</ul>';
 				} else {
 					riskSignalsEl.innerHTML = '<p>No risk signals detected.</p>';
 				}
