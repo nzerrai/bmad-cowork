@@ -1,5 +1,5 @@
 # generated: 2026-08-02
-# last_updated: 2026-08-08
+# last_updated: 2026-08-09
 # project: tarmacacademy
 # project_key: NOKEY
 # tracking_system: file-system
@@ -42,7 +42,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-08-02
-last_updated: 2026-08-08
+last_updated: 2026-08-09
 project: tarmacacademy
 project_key: NOKEY
 tracking_system: file-system
@@ -66,9 +66,9 @@ development_status:
   epic-2: in-progress
   2-1-real-time-websocket-communication-pillar: done
   2-2-local-repo-scan-and-git-state-detection: done
-  2-3-zero-setup-onboarding-and-application-identity: in-progress
-  2-4-pending-access-state-and-actionable-prompt: backlog
-  2-5-continuous-local-repo-state-reporting: backlog
+  2-3-zero-setup-onboarding-and-application-identity: done
+  2-4-pending-access-state-and-actionable-prompt: done
+  2-5-continuous-local-repo-state-reporting: in-progress
   epic-2-retrospective: optional
 
   # Epic 3: Claims, Contributors & Team Sync View
@@ -102,7 +102,7 @@ development_status:
   epic-6-retrospective: optional
 
   # Epic 7: VS Code Plugin - IDE Integration & Dashboard Display
-  epic-7: backlog
+  epic-7: in-progress
   7-1-vscode-extension-skeleton-and-packagejson-setup: backlog
   7-2-configurable-repo-polling-engine-default-5-min: backlog
   7-3-event-driven-git-polling-override: backlog

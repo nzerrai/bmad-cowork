@@ -249,15 +249,38 @@ def scan_repository(repo_path: str = ".") -> dict[str, Any]:
     Returns:
         A dictionary with the following structure:
         {
-            "remote_identity": str | None,
-            "drift": {"ahead": int, "behind": int},
+            "technical_identifier": str | None,
+            "branch": str | None,
+            "ahead": int,
+            "behind": int,
             "in_progress_action": str | None,
             "is_bmad_enabled": bool
         }
     """
+    remote_identity = get_remote_identity(repo_path)
+    drift = get_local_drift(repo_path)
+    branch = get_current_branch(repo_path)
+
     return {
-        "remote_identity": get_remote_identity(repo_path),
-        "drift": get_local_drift(repo_path),
+        "technical_identifier": remote_identity,
+        "branch": branch,
+        "ahead": drift.get("ahead", 0),
+        "behind": drift.get("behind", 0),
         "in_progress_action": get_in_progress_git_action(repo_path),
         "is_bmad_enabled": is_bmad_enabled(repo_path),
     }
+
+
+def get_current_branch(repo_path: str = ".") -> str | None:
+    """Returns the current branch name.
+
+    Args:
+        repo_path: Path to the Git repository.
+
+    Returns:
+        The current branch name, or None if not available or not a Git repo.
+    """
+    success, output = _run_git_command(repo_path, ["branch", "--show-current"])
+    if success and output:
+        return output.strip()
+    return None

@@ -29,6 +29,7 @@ to `manager.connect()`/`broadcast()` running turned out to matter).
 """
 
 import uuid
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from starlette.concurrency import run_in_threadpool
@@ -37,6 +38,7 @@ from app.auth.dependencies import resolve_user_from_token
 from app.config import IHM_ORIGIN
 from app.db import SessionLocal
 from app.hub import service as hub_service
+from app.hub.git_state_models import ContributorGitState
 from app.hub.models import HubStatus, Space
 from app.realtime.manager import ConnectionManager
 
@@ -80,12 +82,93 @@ def _process_client_identity(technical_identifier: str, user_id: uuid.UUID):
             db.commit()
             db.refresh(space)
 
-        return {
+        # Prepare result
+        result = {
             "space_id": str(space.id),
             "technical_identifier": space.technical_identifier,
             "short_name": space.short_name,
             "status": space.status.value,
         }
+
+        # If status is pending, include access-grant link or fallback text
+        if space.status == HubStatus.PENDING:
+            provider = hub_service.detect_git_provider(technical_identifier)
+            access_grant_link = hub_service.generate_access_grant_link(provider, technical_identifier)
+
+            # Determine if this is a link or fallback text
+            if provider in ["github", "gitlab", "bitbucket"]:
+                result["access_grant_link"] = access_grant_link
+                result["access_grant_fallback_text"] = None
+            else:
+                result["access_grant_link"] = None
+                result["access_grant_fallback_text"] = access_grant_link
+
+        return result
+    finally:
+        db.close()
+
+
+def _process_git_state_report(message: dict, user_id: uuid.UUID):
+    """Processes a client's Git state report and stores the canonical state.
+
+    Runs in a threadpool to avoid blocking the event loop.
+    Implements AD-008: one stream, one canonical read model.
+    """
+    db = SessionLocal()
+    try:
+        # Extract Git state from message
+        technical_identifier = message.get("technical_identifier")
+        branch = message.get("branch")
+
+        # Validate and extract ahead/behind with proper type checking and non-negative enforcement
+        try:
+            ahead_val = message.get("ahead", 0)
+            ahead = max(0, int(ahead_val)) if ahead_val is not None else 0
+        except (ValueError, TypeError):
+            import logging
+            logging.warning("Invalid 'ahead' value in git state report: %s", ahead_val)
+            ahead = 0
+
+        try:
+            behind_val = message.get("behind", 0)
+            behind = max(0, int(behind_val)) if behind_val is not None else 0
+        except (ValueError, TypeError):
+            import logging
+            logging.warning("Invalid 'behind' value in git state report: %s", behind_val)
+            behind = 0
+
+        in_progress_action = message.get("in_progress_action", "none")
+
+        if not technical_identifier:
+            return
+
+        # Update or create the canonical Git state record for this contributor
+        git_state = db.query(ContributorGitState).filter(ContributorGitState.user_id == user_id).first()
+
+        if git_state:
+            # Update existing state
+            git_state.technical_identifier = technical_identifier
+            git_state.branch = branch
+            git_state.ahead = ahead
+            git_state.behind = behind
+            git_state.in_progress_action = in_progress_action or "none"
+            git_state.last_updated = datetime.now(timezone.utc)
+            db.commit()
+        else:
+            # Create new state record
+            git_state = ContributorGitState(
+                user_id=user_id,
+                technical_identifier=technical_identifier,
+                branch=branch,
+                ahead=ahead,
+                behind=behind,
+                in_progress_action=in_progress_action or "none",
+                last_updated=datetime.now(timezone.utc),
+            )
+            db.add(git_state)
+            db.commit()
+
+        db.refresh(git_state)
     finally:
         db.close()
 
@@ -132,13 +215,25 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                     space_result = await run_in_threadpool(_process_client_identity, technical_identifier, user.id)
                     if space_result:
                         # Send space_joined response to client
-                        await websocket.send_json({
+                        space_joined_message = {
                             "type": "space_joined",
                             "space_id": str(space_result["space_id"]),
                             "technical_identifier": space_result["technical_identifier"],
                             "short_name": space_result["short_name"],
                             "status": space_result["status"],
-                        })
+                        }
+                        # Include access-grant link or fallback text if status is pending
+                        if space_result["status"] == "pending":
+                            if "access_grant_link" in space_result:
+                                space_joined_message["access_grant_link"] = space_result.get("access_grant_link")
+                            if "access_grant_fallback_text" in space_result:
+                                space_joined_message["access_grant_fallback_text"] = space_result.get("access_grant_fallback_text")
+
+                        await websocket.send_json(space_joined_message)
+            elif isinstance(message, dict) and message.get("type") == "client_git_state_report":
+                # Process git state report in threadpool to avoid blocking event loop
+                # Implements AD-008: one stream, one canonical read model
+                await run_in_threadpool(_process_git_state_report, message, user.id)
     except WebSocketDisconnect:
         pass
     finally:

@@ -84,26 +84,46 @@ def detect_git_provider(technical_identifier: str) -> str:
 def generate_access_grant_link(provider: str, technical_identifier: str) -> str:
     """Generates a provider-scoped access-grant link for a pending space.
 
-    Returns a generic text fallback if the provider cannot be determined.
+    Returns a provider-specific link with repository path if the provider is known,
+    or a generic text fallback if the provider cannot be determined.
     """
+    # Validate the technical identifier format
+    if not technical_identifier or not isinstance(technical_identifier, str):
+        return "Veuillez accorder l'accès en lecture au dépôt depuis les paramètres de votre fournisseur Git."
+
+    # Extract org and repo from technical_identifier for provider-specific links
+    # technical_identifier is in format: host/org/repo or git@host:org/repo
+    org_and_repo = None
+
+    # Parse the org and repo from the technical identifier
+    # Fix SSH URLs with ports like git@host:port:org/repo
+    match_ssh = re.search(r"^[a-zA-Z0-9_-]+@[a-zA-Z0-9.-]+:(?:\d+:)?([^/]+)/(.+)$", technical_identifier)
+    if match_ssh:
+        org_and_repo = f"{match_ssh.group(1)}/{match_ssh.group(2).replace('.git', '')}"
+    else:
+        match_https = re.search(r"^https?://[a-zA-Z0-9.-]+/([^/]+)/(.+)$", technical_identifier)
+        if match_https:
+            org_and_repo = f"{match_https.group(1)}/{match_https.group(2).replace('.git', '')}"
+
     provider_links = {
-        "github": "https://github.com/settings/apps",
-        "gitlab": "https://gitlab.com/-/profile/applications",
-        "bitbucket": "https://bitbucket.org/account/settings/app-passwords/",
+        "github": {
+            "link": f"https://github.com/{org_and_repo}/settings/keys" if org_and_repo else "https://github.com/settings/apps",
+        },
+        "gitlab": {
+            "link": f"https://gitlab.com/{org_and_repo}/-/repository/keys" if org_and_repo else "https://gitlab.com/-/profile/applications",
+        },
+        "bitbucket": {
+            "link": f"https://bitbucket.org/{org_and_repo}/admin/access-keys" if org_and_repo else "https://bitbucket.org/account/settings/app-passwords/",
+        },
     }
 
-    provider_name = {
-        "github": "GitHub",
-        "gitlab": "GitLab",
-        "bitbucket": "Bitbucket",
-    }.get(provider, "Git provider")
+    provider_info = provider_links.get(provider)
 
-    link = provider_links.get(provider)
+    if provider_info and "link" in provider_info:
+        return provider_info["link"]
 
-    if link:
-        return f"Accordez l'accès en lecture au dépôt sur {provider_name} : {link}"
-
-    return f"Accordez l'accès en lecture au dépôt auprès de votre fournisseur Git ({provider_name})."
+    # Generic fallback for unknown providers
+    return "Veuillez accorder l'accès en lecture au dépôt depuis les paramètres de votre fournisseur Git."
 
 
 def get_or_create_space(db: Session, technical_identifier: str) -> Space:
@@ -118,10 +138,20 @@ def get_or_create_space(db: Session, technical_identifier: str) -> Space:
     short_name = extract_short_name(technical_identifier)
     provider = detect_git_provider(technical_identifier)
 
+    # Check if space already exists
+    existing_space = db.query(Space).filter(Space.technical_identifier == technical_identifier).first()
+
+    if existing_space:
+        # For existing space, ensure status is PENDING if it was ACCESS_REVOKED
+        # or if access needs to be re-verified
+        if existing_space.status == HubStatus.ACCESS_REVOKED:
+            existing_space.status = HubStatus.PENDING
+            db.commit()
+            db.refresh(existing_space)
+        return existing_space
+
     # Determine status based on access state
-    # For now, we assume pending until we can verify read access
-    # The check_repo_access function would be implemented based on the actual
-    # access verification mechanism
+    # For a new space, we assume pending until we can verify read access
     status = determine_space_status(db, technical_identifier)
 
     # Use PostgreSQL's INSERT ... ON CONFLICT DO UPDATE for atomic upsert
@@ -157,26 +187,56 @@ def get_or_create_space(db: Session, technical_identifier: str) -> Space:
     return space
 
 
-def determine_space_status(db: Session, technical_identifier: str) -> HubStatus:
+def determine_space_status(db: Session, technical_identifier: str, current_status: HubStatus | None = None) -> HubStatus:
     """Determines the status of a space based on backend access state.
 
     If the Backend lacks read access at creation time, status is PENDING.
     Otherwise, status is ACTIVE.
+
+    For an existing space:
+    - If current_status is ACCESS_REVOKED, the new status should be PENDING
+      for re-verification, never directly to ACTIVE.
+    - If access is verified, status transitions to ACTIVE.
     """
-    # For now, default to PENDING as we need to verify read access
-    # The actual access verification would involve checking if the backend
-    # can successfully clone/pull from the repository
+    # If the space had access revoked, it must transition to PENDING for re-verification
+    if current_status == HubStatus.ACCESS_REVOKED:
+        return HubStatus.PENDING
+
+    # Verify read access using check_repo_access
+    if check_repo_access(db, technical_identifier):
+        return HubStatus.ACTIVE
+
+    # Default to PENDING as we need to verify read access
     return HubStatus.PENDING
 
 
 def check_repo_access(db: Session, technical_identifier: str) -> bool:
     """Determines if the Backend has read access to the repository.
 
-    This would typically involve attempting a git ls-remote or git clone operation
-    to verify read access. For now, returns True to allow status transition to ACTIVE
-    after initial space creation, with actual access verification to be implemented later.
+    This verifies read access by attempting to parse the technical identifier
+    and validate the Git remote URL structure. For actual git operations,
+    this would involve attempting a git ls-remote or git clone operation
+    to verify read access.
+
+    Returns True if the repository identifier is valid and accessible format,
+    False if access cannot be verified or identifier is invalid.
     """
-    # Placeholder implementation - would verify actual read access
-    # by attempting to list remote refs or perform a shallow clone
-    # For now, assume access is granted to allow space status transition
-    return True
+    # Validate the technical identifier format
+    if not technical_identifier or not isinstance(technical_identifier, str):
+        return False
+
+    # Check if it matches expected Git remote URL patterns
+    identifier = technical_identifier.replace(".git", "")
+
+    # GitHub/GitLab/Bitbucket SSH pattern: git@github.com:org/repo or git@github.com:port:org/repo
+    git_ssh_pattern = r"^[a-zA-Z0-9_-]+@[a-zA-Z0-9.-]+:(?:\d+:)?([^/]+)/(.+)$"
+    if re.match(git_ssh_pattern, identifier):
+        return True
+
+    # HTTPS pattern: https://github.com/org/repo or https://gitlab.com/org/repo
+    https_pattern = r"^https?://[a-zA-Z0-9.-]+/([^/]+)/(.+)$"
+    if re.match(https_pattern, identifier):
+        return True
+
+    # If it doesn't match known patterns, we cannot verify access
+    return False

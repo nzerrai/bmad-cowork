@@ -24,16 +24,22 @@ def upgrade() -> None:
 
     Adds `spaces` table for zero-setup onboarding and application identity.
     """
-    # Create HubStatus enum
+    # Use the enum type by name - ensure it exists first
     hub_status_enum = sa.Enum('pending', 'active', 'access_revoked', name='hubstatus')
-    hub_status_enum.create(op.get_bind(), checkfirst=True)
+    bind = op.get_bind()
+    try:
+        hub_status_enum.create(bind, checkfirst=True)
+    except Exception:
+        # Enum may already exist, continue anyway
+        pass
 
+    # Create table using the existing enum type
     op.create_table(
         "spaces",
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("technical_identifier", sa.String(512), nullable=False),
         sa.Column("short_name", sa.String(255), nullable=False),
-        sa.Column("status", sa.Enum('pending', 'active', 'access_revoked', name='hubstatus'), nullable=False),
+        sa.Column("status", postgresql.ENUM('pending', 'active', 'access_revoked', name='hubstatus', create_type=False), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.PrimaryKeyConstraint("id"),

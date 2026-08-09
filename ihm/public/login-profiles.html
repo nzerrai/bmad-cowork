@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BMad Portal Hub - Login Profiles</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            color: #e0e0e0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+        .subtitle {
+            text-align: center;
+            color: #8892b0;
+            margin-bottom: 40px;
+            font-size: 1.1rem;
+        }
+        .profiles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+        .profile-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 24px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .profile-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        .profile-role {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #64ffda;
+            margin-bottom: 8px;
+        }
+        .profile-email {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 16px;
+        }
+        .profile-id {
+            font-size: 0.75rem;
+            color: #8892b0;
+            font-family: monospace;
+            margin-bottom: 16px;
+            word-break: break-all;
+        }
+        .login-btn {
+            width: 100%;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #64ffda 0%, #00b4d8 100%);
+            color: #1a1a2e;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .login-btn:hover {
+            opacity: 0.9;
+        }
+        .login-btn:active {
+            transform: scale(0.98);
+        }
+        .login-btn.loading {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .token-display {
+            margin-top: 16px;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(100, 255, 218, 0.3);
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: #64ffda;
+            word-break: break-all;
+            max-height: 100px;
+            overflow-y: auto;
+            display: none;
+        }
+        .token-display.show {
+            display: block;
+        }
+        .copy-btn {
+            margin-top: 8px;
+            padding: 6px 12px;
+            background: rgba(100, 255, 218, 0.1);
+            color: #64ffda;
+            border: 1px solid #64ffda;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        .copy-btn:hover {
+            background: rgba(100, 255, 218, 0.2);
+        }
+        .ws-link {
+            margin-top: 12px;
+            padding: 8px 12px;
+            background: rgba(100, 255, 218, 0.05);
+            border: 1px solid rgba(100, 255, 218, 0.2);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            color: #64ffda;
+            text-decoration: none;
+            display: none;
+        }
+        .ws-link.show {
+            display: block;
+        }
+        .ws-link:hover {
+            background: rgba(100, 255, 218, 0.1);
+        }
+        .status-msg {
+            text-align: center;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .status-msg.show {
+            display: block;
+        }
+        .status-msg.success {
+            background: rgba(100, 255, 218, 0.1);
+            border: 1px solid rgba(100, 255, 218, 0.3);
+            color: #64ffda;
+        }
+        .status-msg.error {
+            background: rgba(255, 82, 82, 0.1);
+            border: 1px solid rgba(255, 82, 82, 0.3);
+            color: #ff5252;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>BMad Portal Hub</h1>
+        <p class="subtitle">Connexion rapide par profil - Mots de passe: <code>correct-horse</code></p>
+
+        <div id="statusMsg" class="status-msg"></div>
+
+        <div class="profiles-grid">
+            <!-- Admin -->
+            <div class="profile-card">
+                <div class="profile-role">Admin</div>
+                <div class="profile-email">admin@example.com</div>
+                <div class="profile-id">ID: ab7d57bf-e5a1-4172-bf42-21eb693ea7cd</div>
+                <button class="login-btn" onclick="loginProfile(this, 'admin@example.com', 'correct-horse')">
+                    Se connecter en Admin
+                </button>
+                <div class="token-display" id="token-admin"></div>
+                <a class="ws-link" id="ws-admin" href="#" target="_blank">Lancer le Client Agent (WS)</a>
+            </div>
+
+            <!-- Developer -->
+            <div class="profile-card">
+                <div class="profile-role">Developer</div>
+                <div class="profile-email">dev@example.com</div>
+                <div class="profile-id">ID: 93481aea-1fde-4dbd-938c-8932384b1f0f</div>
+                <button class="login-btn" onclick="loginProfile(this, 'dev@example.com', 'correct-horse')">
+                    Se connecter en Developer
+                </button>
+                <div class="token-display" id="token-dev"></div>
+                <a class="ws-link" id="ws-dev" href="#" target="_blank">Lancer le Client Agent (WS)</a>
+            </div>
+
+            <!-- Product Manager -->
+            <div class="profile-card">
+                <div class="profile-role">Product Manager</div>
+                <div class="profile-email">pm@example.com</div>
+                <div class="profile-id">ID: 9e4f68e8-b6c3-49de-ba27-f0cb58f43030</div>
+                <button class="login-btn" onclick="loginProfile(this, 'pm@example.com', 'correct-horse')">
+                    Se connecter en PM
+                </button>
+                <div class="token-display" id="token-pm"></div>
+                <a class="ws-link" id="ws-pm" href="#" target="_blank">Lancer le Client Agent (WS)</a>
+            </div>
+
+            <!-- Architect / Tech Lead -->
+            <div class="profile-card">
+                <div class="profile-role">Architect / Tech Lead</div>
+                <div class="profile-email">architect@example.com</div>
+                <div class="profile-id">ID: fd708568-3802-40d6-929c-2b4663c88cd8</div>
+                <button class="login-btn" onclick="loginProfile(this, 'architect@example.com', 'correct-horse')">
+                    Se connecter en Architect
+                </button>
+                <div class="token-display" id="token-architect"></div>
+                <a class="ws-link" id="ws-architect" href="#" target="_blank">Lancer le Client Agent (WS)</a>
+            </div>
+
+            <!-- UX Designer -->
+            <div class="profile-card">
+                <div class="profile-role">UX Designer</div>
+                <div class="profile-email">ux@example.com</div>
+                <div class="profile-id">ID: dd88f082-e3b0-44bb-a3bc-82409988440a</div>
+                <button class="login-btn" onclick="loginProfile(this, 'ux@example.com', 'correct-horse')">
+                    Se connecter en UX Designer
+                </button>
+                <div class="token-display" id="token-ux"></div>
+                <a class="ws-link" id="ws-ux" href="#" target="_blank">Lancer le Client Agent (WS)</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const BACKEND_URL = 'http://localhost:8000';
+
+        function showStatus(message, isError = false) {
+            const statusMsg = document.getElementById('statusMsg');
+            statusMsg.textContent = message;
+            statusMsg.className = 'status-msg show ' + (isError ? 'error' : 'success');
+            setTimeout(() => {
+                statusMsg.classList.remove('show');
+            }, 5000);
+        }
+
+        async function loginProfile(btn, email, password) {
+            const card = btn.closest('.profile-card');
+            const tokenDisplay = card.querySelector('.token-display');
+            const wsLink = card.querySelector('.ws-link');
+
+            btn.classList.add('loading');
+            btn.textContent = 'Connexion en cours...';
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Échec de la connexion');
+                }
+
+                const data = await response.json();
+                const token = data.access_token;
+
+                // Display token
+                tokenDisplay.innerHTML = `<strong>Token JWT:</strong><br>${token}<br><button class="copy-btn" onclick="copyToken(this)">Copier le token</button>`;
+                tokenDisplay.classList.add('show');
+
+                // Update WS link
+                const wsUrl = `ws://localhost:8000/ws?token=${encodeURIComponent(token)}&client_type=python_agent`;
+                wsLink.href = wsUrl;
+                wsLink.classList.add('show');
+
+                showStatus('Connexion réussie ! Token généré.');
+            } catch (error) {
+                console.error('Login error:', error);
+                showStatus('Erreur de connexion: ' + error.message, true);
+            } finally {
+                btn.classList.remove('loading');
+                btn.textContent = btn.textContent.includes('Admin') ? 'Se connecter en Admin' :
+                                  btn.textContent.includes('Developer') ? 'Se connecter en Developer' :
+                                  btn.textContent.includes('PM') ? 'Se connecter en PM' :
+                                  btn.textContent.includes('Architect') ? 'Se connecter en Architect' :
+                                  'Se connecter en UX Designer';
+            }
+        }
+
+        function copyToken(btn) {
+            const tokenDisplay = btn.closest('.token-display');
+            const token = tokenDisplay.innerHTML.split('<br>')[1].replace('<strong>Token JWT:</strong><br>', '');
+            navigator.clipboard.writeText(token).then(() => {
+                btn.textContent = 'Copié !';
+                setTimeout(() => {
+                    btn.textContent = 'Copier le token';
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>

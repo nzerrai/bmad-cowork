@@ -167,22 +167,28 @@ class TestGitStateDetection(unittest.TestCase):
         with patch("agent.git_state.get_remote_identity") as mock_remote, \
              patch("agent.git_state.get_local_drift") as mock_drift, \
              patch("agent.git_state.get_in_progress_git_action") as mock_action, \
-             patch("agent.git_state.is_bmad_enabled") as mock_bmad:
+             patch("agent.git_state.is_bmad_enabled") as mock_bmad, \
+             patch("agent.git_state.get_current_branch") as mock_branch:
 
             mock_remote.return_value = "git@github.com:test-org/test-repo.git"
             mock_drift.return_value = {"ahead": 2, "behind": 1}
             mock_action.return_value = None
             mock_bmad.return_value = True
+            mock_branch.return_value = "main"
 
             result = scan_repository(self.test_dir)
 
-            self.assertIn("remote_identity", result)
-            self.assertIn("drift", result)
+            self.assertIn("technical_identifier", result)
+            self.assertIn("branch", result)
+            self.assertIn("ahead", result)
+            self.assertIn("behind", result)
             self.assertIn("in_progress_action", result)
             self.assertIn("is_bmad_enabled", result)
 
-            self.assertEqual(result["remote_identity"], "git@github.com:test-org/test-repo.git")
-            self.assertEqual(result["drift"], {"ahead": 2, "behind": 1})
+            self.assertEqual(result["technical_identifier"], "git@github.com:test-org/test-repo.git")
+            self.assertEqual(result["branch"], "main")
+            self.assertEqual(result["ahead"], 2)
+            self.assertEqual(result["behind"], 1)
             self.assertIsNone(result["in_progress_action"])
             self.assertTrue(result["is_bmad_enabled"])
 

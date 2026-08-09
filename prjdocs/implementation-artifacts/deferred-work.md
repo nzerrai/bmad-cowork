@@ -91,3 +91,19 @@
 - source_spec: `2-3-zero-setup-onboarding-and-application-identity.md`
   summary: Missing test for client_identity_report / space_joined flow in WebSocket router tests.
   evidence: Verification Gap review confirmed `backend/tests/test_realtime.py` tests WebSocket connection, token validation, origin rejection, heartbeat messages, and unknown/missing type messages, but does not include a test for `client_identity_report` message or `space_joined` response flow.
+
+## Deferred from: code review (2026-08-08)
+
+- source_spec: `2-4-pending-access-state-and-actionable-prompt.md`
+  summary: Missing test coverage for `get_or_create_space` ACCESS_REVOKED to PENDING transition.
+  evidence: Verification Gap review confirmed no tests exist in `test_hub_service.py` for the `ACCESS_REVOKED` to `PENDING` status transition behavior in `get_or_create_space`, nor tests that verify the `determine_space_status` function correctly returns `HubStatus.PENDING` when `current_status == HubStatus.ACCESS_REVOKED`.
+
+- source_spec: `2-4-pending-access-state-and-actionable-prompt.md`
+  summary: Missing test coverage for `space_joined` message with `access_grant_link` and `access_grant_fallback_text`.
+  evidence: Verification Gap review confirmed `test_realtime.py` does not include tests for the `space_joined` message including `access_grant_link` or `access_grant_fallback_text` fields when the space status is `pending`.
+
+## Deferred from: code review (2026-08-09)
+
+- source_spec: `2-5-continuous-local-repo-state-reporting.md`
+  summary: `check_repo_access` docstring misleading about git operations.
+  evidence: Code review confirmed the `check_repo_access` function's docstring claims it would involve attempting git ls-remote or git clone operations to verify read access, but the implementation only validates URL pattern matching without any actual git operations, making the docstring misleading.

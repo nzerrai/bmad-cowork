@@ -80,7 +80,7 @@ async def _send_git_state_report(connection: websockets.ClientConnection, repo_p
     """Send a Git state report over the WebSocket connection.
 
     Sends state reports over the existing WebSocket connection using the
-    envelope format: `{"type": "git_state_report", "state": {...}}`
+    envelope format: `{"type": "client_git_state_report", "technical_identifier": <str>, "branch": <str>, "ahead": <int>, "behind": <int>, "in_progress_action": <str>, "is_bmad_enabled": <bool>}`
 
     Args:
         connection: The WebSocket connection.
@@ -88,14 +88,19 @@ async def _send_git_state_report(connection: websockets.ClientConnection, repo_p
     """
     state = scan_repository(repo_path)
     report = {
-        "type": "git_state_report",
-        "state": state,
+        "type": "client_git_state_report",
+        "technical_identifier": state.get("technical_identifier"),
+        "branch": state.get("branch"),
+        "ahead": state.get("ahead", 0),
+        "behind": state.get("behind", 0),
+        "in_progress_action": state.get("in_progress_action", "none"),
+        "is_bmad_enabled": state.get("is_bmad_enabled", False),
     }
     try:
         await connection.send(json.dumps(report))
-        logger.debug("Sent git_state_report: %s", state)
+        logger.debug("Sent client_git_state_report: %s", report)
     except Exception:  # noqa: BLE001
-        logger.warning("Failed to send git_state_report")
+        logger.warning("Failed to send client_git_state_report")
 
 
 async def _send_client_identity_report(connection: websockets.ClientConnection, repo_path: str = ".") -> None:
@@ -124,7 +129,7 @@ async def _send_client_identity_report(connection: websockets.ClientConnection, 
         logger.warning("Failed to send client_identity_report")
 
 
-async def _sync_state_reporter(connection: websockets.ClientConnection, stop_event: asyncio.Event, repo_path: str = ".", scan_interval: float = 30.0) -> None:
+async def _sync_state_reporter(connection: websockets.ClientConnection, stop_event: asyncio.Event, repo_path: str = ".", repo_polling_interval_sec: float = 10.0) -> None:
     """Periodically scan the repository and send state reports.
 
     Performs the Git scan periodically and sends state reports over the
@@ -132,23 +137,21 @@ async def _sync_state_reporter(connection: websockets.ClientConnection, stop_eve
     as specified in AD-008 (Local Repo State Reporting: one stream, one
     canonical read model).
 
-    Sends the initial state report and identity report immediately on Client startup/connection,
-    then periodically thereafter.
+    Sends the initial state report immediately on Client startup/connection,
+    then periodically thereafter with a configurable interval (default 10 seconds).
 
     Args:
         connection: The WebSocket connection.
         stop_event: Event to signal stopping.
         repo_path: Path to the Git repository to scan.
-        scan_interval: Interval in seconds between periodic scans.
+        repo_polling_interval_sec: Configurable interval in seconds between periodic scans (default 10).
     """
-    # Send initial state report and identity report immediately on Client startup/connection
+    # Send initial state report immediately on Client startup/connection
     if not stop_event.is_set():
         await _send_git_state_report(connection, repo_path)
-        # Send identity report only once on Client startup
-        await _send_client_identity_report(connection, repo_path)
 
     while not stop_event.is_set():
-        await _sleep_or_stop(scan_interval, stop_event)
+        await _sleep_or_stop(repo_polling_interval_sec, stop_event)
         if not stop_event.is_set():
             await _send_git_state_report(connection, repo_path)
 
@@ -160,7 +163,7 @@ async def connect_and_run(
     heartbeat_interval: float = 10.0,
     repo_path: str = ".",
     stop_event: asyncio.Event | None = None,
-    scan_interval: float = 30.0,
+    repo_polling_interval_sec: float = 10.0,
 ) -> None:
     """Maintain a persistent, authenticated WebSocket connection.
 
@@ -172,7 +175,8 @@ async def connect_and_run(
     `stop_event` is set - the parameter exists purely for testability.
 
     Also periodically scans the local repository and sends Git state reports
-    over the WebSocket connection using the `git_state_report` envelope format.
+    over the WebSocket connection using the `client_git_state_report` envelope format
+    with a configurable 10-second safety tick fallback (default 10 seconds).
     """
     if stop_event is None:
         stop_event = asyncio.Event()
@@ -190,7 +194,7 @@ async def connect_and_run(
                     tg.create_task(_send_heartbeats(connection, heartbeat_interval))
                     tg.create_task(_receive_messages(connection))
                     tg.create_task(_watch_stop(stop_event))
-                    tg.create_task(_sync_state_reporter(connection, stop_event, repo_path, scan_interval))
+                    tg.create_task(_sync_state_reporter(connection, stop_event, repo_path, repo_polling_interval_sec))
         except _StopRequested:
             stop_requested = True
         except ExceptionGroup as eg:
