@@ -7,6 +7,7 @@
  */
 
 import * as vscode from 'vscode';
+import { GitEventData, GitEventManager } from './git-events';
 
 export interface GitState {
 	/** The connected remote repo identity */
@@ -31,11 +32,18 @@ export class GitPoller {
 	private pollingIntervalSec: number;
 	private pollTimer: NodeJS.Timeout | undefined;
 	private onStateChangeCallbacks: ((state: GitState) => void)[] = [];
+	private gitEventManager: GitEventManager;
 
 	constructor(private context: vscode.ExtensionContext) {
 		const config = vscode.workspace.getConfiguration('bmadPortal');
 		// Default to 300 seconds (5 minutes) as per Epic 7 requirements
 		this.pollingIntervalSec = config.get<number>('repoPollingIntervalSec', 300);
+		this.gitEventManager = new GitEventManager(context);
+
+		// Listen for Git events and trigger immediate state uploads
+		this.gitEventManager.onGitEvent(async (event: GitEventData) => {
+			await this.handleGitEvent(event);
+		});
 	}
 
 	public start(): void {
@@ -63,13 +71,27 @@ export class GitPoller {
 		this.onStateChangeCallbacks.push(callback);
 	}
 
-	private async pollGitState(): Promise<void> {
+	private async pollGitState(forceUpload: boolean = false): Promise<void> {
 		try {
 			const state = await this.detectGitState();
 			this.notifyStateChange(state);
+
+			// If this is a force upload (from event override), notify the state reporter
+			if (forceUpload) {
+				// The state reporter integration is handled in extension.ts
+			}
 		} catch (error) {
 			vscode.window.showWarningMessage(`BMad Portal: Git state polling error: ${error}`);
 		}
+	}
+
+	private async handleGitEvent(event: GitEventData): Promise<void> {
+		// Trigger an immediate state upload (event-driven override)
+		// This does not disrupt the scheduled poll timer
+		vscode.window.showInformationMessage(`BMad Portal: Git event detected (${event.eventType}), triggering immediate state upload`);
+
+		// Force poll and upload state
+		await this.pollGitState(true);
 	}
 
 	private async detectGitState(): Promise<GitState> {

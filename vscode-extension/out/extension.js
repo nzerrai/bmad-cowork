@@ -54,7 +54,8 @@ function activate(context) {
         vscode.window.showInformationMessage('BMad Portal: Dashboard refresh triggered');
         // Force immediate poll
         if (exports.gitPoller) {
-            await exports.gitPoller['pollGitState']();
+            // Access the private pollGitState method via type assertion
+            await exports.gitPoller.pollGitState(true);
         }
     });
     const openDashboardCommand = vscode.commands.registerCommand('bmad-portal.openDashboard', async () => {

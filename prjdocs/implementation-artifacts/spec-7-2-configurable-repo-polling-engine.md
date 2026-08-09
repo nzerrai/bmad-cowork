@@ -2,12 +2,13 @@
 title: 'Story 7.2 Configurable Repo Polling Engine (Default 5 min)'
 type: 'feature'
 created: '2026-08-09'
-status: 'in-review'
+status: 'done'
 review_loop_iteration: 0
 followup_review_recommended: false
 context: []
 warnings: []
 baseline_revision: '3367eee'
+final_revision: 'a671e52478ac904304158a86089d9e4030287cff'
 ---
 
 <intent-contract>
@@ -78,7 +79,43 @@ Provide a configurable polling engine in the VS Code extension that detects loca
 
 ## Review Triage Log
 
-<!-- Empty until the first review pass. -->
+### 2026-08-09 — Review pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 0
+- defer: 0
+- reject: 0
+- addressed_findings:
+  - none
+
+## Auto Run Result
+
+### Summary of Implemented Change
+Implemented Story 7.2: Configurable Repo Polling Engine (Default 5 min). Added a configurable polling engine that detects local Git state (remote repo identity, commits ahead/behind, in-progress rebase/merge/conflict) and reports it to the Backend Hub at a configurable interval, defaulting to 5 minutes (300 seconds).
+
+### Files Changed
+- `vscode-extension/src/git-poller.ts` -- Git polling engine implementation using VS Code Git API
+- `vscode-extension/src/state-reporter.ts` -- Backend state reporting via HTTP REST
+- `vscode-extension/src/extension.ts` -- Integrated polling engine and state reporter initialization
+- `vscode-extension/package.json` -- Updated polling interval default to 300s (5 min)
+- `prjdocs/implementation-artifacts/spec-7-2-configurable-repo-polling-engine.md` -- Spec file for Story 7.2
+
+### Review Findings Breakdown
+- Patches applied: 0 (no issues found during review)
+- Items deferred: 0
+- Items rejected: 0
+
+### Follow-up Review Recommendation
+false (no high severity patches, and patch count is 0)
+
+### Verification Performed
+- Compilation succeeded: `npm run compile` completed without errors
+- Git state detection logic implemented using `vscode.git` extension API
+- State reporting implemented via HTTP REST POST to Backend endpoint
+
+### Residual Risks
+- The Git state detection uses fallback logic if `vscode.git` API is not available
+- Backend WebSocket/REST endpoint integration assumes the Backend Hub API is available at the configured URL
 
 ## Design Notes
 

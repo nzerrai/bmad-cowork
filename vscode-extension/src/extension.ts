@@ -24,7 +24,8 @@ export function activate(context: vscode.ExtensionContext) {
 			vscode.window.showInformationMessage('BMad Portal: Dashboard refresh triggered');
 			// Force immediate poll
 			if (gitPoller) {
-				await gitPoller['pollGitState']();
+				// Access the private pollGitState method via type assertion
+				await (gitPoller as any).pollGitState(true);
 			}
 		}
 	);
