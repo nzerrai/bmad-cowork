@@ -2,12 +2,13 @@
 title: 'Story 7.3 Event-Driven Git Polling Override'
 type: 'feature'
 created: '2026-08-09'
-status: 'in-review'
+status: 'done'
 review_loop_iteration: 0
 followup_review_recommended: false
 context: []
 warnings: []
 baseline_revision: 'a671e52478ac904304158a86089d9e4030287cff'
+final_revision: '0ecff55851a5e365e55f29fd3a6196b30a656603'
 ---
 
 <intent-contract>

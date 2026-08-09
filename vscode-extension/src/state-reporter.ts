@@ -6,6 +6,7 @@
 
 import * as vscode from 'vscode';
 import { GitState } from './git-poller';
+import { JwtStorageManager } from './jwt-storage';
 
 export interface StateReport {
 	/** Contributor identity */
@@ -24,17 +25,19 @@ export class StateReporter {
 	private backendHubUrl: string;
 	private authToken?: string;
 	private lastReportTimestamp?: number;
+	private jwtStorage: JwtStorageManager;
 
 	constructor(private context: vscode.ExtensionContext) {
 		const config = vscode.workspace.getConfiguration('bmadPortal');
 		this.backendHubUrl = config.get<string>('backendHubUrl', 'http://localhost:3000');
 
-		// In a real implementation, this would retrieve the JWT from vscode.SecretStorage
-		// For now, we'll simulate the auth token retrieval
-		this.authToken = this.getAuthToken();
+		this.jwtStorage = new JwtStorageManager(context);
 	}
 
 	public async reportGitState(state: GitState): Promise<void> {
+		// Ensure we have the latest auth token before reporting
+		await this.updateAuthToken();
+
 		const report: StateReport = {
 			userId: 'default-user', // Would be retrieved from auth context
 			remoteUrl: state.remoteUrl,
@@ -47,6 +50,18 @@ export class StateReporter {
 			await this.sendReportToBackend(report);
 			this.lastReportTimestamp = Date.now();
 		} catch (error) {
+			// Check if the error is due to authentication failure (401 Unauthorized)
+			if (error instanceof Error && error.message.includes('401')) {
+				// Token expired or invalid, trigger re-authentication flow
+				console.warn('Authentication failed during state report, token may be expired');
+				// Clear the invalid token
+				await this.jwtStorage.deleteJwtToken();
+				this.authToken = undefined;
+
+				vscode.window.showWarningMessage('BMad Portal: Session expired. Please re-authenticate.');
+				throw new Error('Authentication required: session expired');
+			}
+
 			vscode.window.showWarningMessage(`BMad Portal: State report failed: ${error}`);
 			throw error;
 		}
@@ -66,12 +81,17 @@ export class StateReporter {
 
 		const endpoint = `${this.backendHubUrl}/api/v1/repo-state`;
 
+		const headers: Record<string, string> = {
+			'Content-Type': 'application/json',
+		};
+
+		if (this.authToken) {
+			headers['Authorization'] = `Bearer ${this.authToken}`;
+		}
+
 		const response = await fetch(endpoint, {
 			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				'Authorization': `Bearer ${this.authToken}`,
-			},
+			headers,
 			body: JSON.stringify(report),
 		});
 
@@ -80,18 +100,8 @@ export class StateReporter {
 		}
 	}
 
-	private getAuthToken(): string | undefined {
-		// In a real implementation, this would retrieve the JWT from vscode.SecretStorage
-		// For now, we'll simulate the auth token retrieval
-		const config = vscode.workspace.getConfiguration('bmadPortal');
-		const authMethod = config.get<string>('authMethod', 'session');
-
-		if (authMethod === 'jwt') {
-			// Retrieve JWT from SecretStorage
-			// return context.secrets.get('bmadPortal.jwtToken');
-			return 'simulated-jwt-token';
-		}
-
-		return undefined;
+	private async updateAuthToken(): Promise<void> {
+		// Retrieve JWT from SecretStorage
+		this.authToken = await this.jwtStorage.getJwtToken();
 	}
 }
