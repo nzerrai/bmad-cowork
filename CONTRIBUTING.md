@@ -1,11 +1,11 @@
 # Contributing
 
-Exact local run steps for all three services, plus PostgreSQL setup. This document intentionally stops at "runs locally" — deployment topology (Kubernetes, serverless, environments) is out of scope for this stage of the project and is not documented here.
+Exact local run steps for all four tiers, plus PostgreSQL setup. This document intentionally stops at "runs locally" — deployment topology (Kubernetes, serverless, environments) is out of scope for this stage of the project and is not documented here.
 
 ## Prerequisites
 
 - **Python 3.13** — managed via [`uv`](https://docs.astral.sh/uv/) (installed separately: `curl -LsSf https://astral.sh/uv/install.sh | sh`, or `brew install uv`). `uv` will fetch and pin Python 3.13 itself; you do not need a system Python 3.13 install.
-- **Node.js >= 20.9** (Next.js 16.3's minimum) with `npm`.
+- **Node.js >= 20.9** (Next.js 16.3's minimum) with `npm`. Running `npm test` in either `ihm/` or `vscode-extension/` needs **Node.js >= 22.3** (node:test's `--experimental-test-module-mocks`, which both tiers' test scripts use) — `npm run dev`/`build`/`compile`/`lint` only need the 20.9 floor above.
 - **Docker** (for local PostgreSQL 18.x via `docker-compose.yml`) — or a locally installed PostgreSQL 18.x server if you prefer not to use Docker.
 
 ## Tooling choices (so later stories don't have to re-derive them)
@@ -15,6 +15,7 @@ Exact local run steps for all three services, plus PostgreSQL setup. This docume
 - **Migrations (`backend/`):** [Alembic](https://alembic.sqlalchemy.org/) — the idiomatic choice for a FastAPI/SQLAlchemy stack.
 - **CI:** GitHub Actions (`.github/workflows/ci.yml`) — the repo already uses `.github/` for BMad agent definitions, so no new CI provider is introduced.
 - **IHM lint/test:** ESLint (`npm run lint`, via the `create-next-app` scaffold) and Node's built-in test runner (`npm test`) as a placeholder until real UI logic (and a real test framework choice, if needed) lands in a later epic.
+- **VS Code Extension packaging/lint/test:** TypeScript ^5 compiled via `tsc` (matching the IHM tier's conventions, since the architecture spine has no dedicated Epic 7 entry), ESLint flat config (`npm run lint`), Node's built-in test runner (`npm test`), and [`@vscode/vsce`](https://github.com/microsoft/vscode-vsce) (`npm run package`) to produce a locally installable `.vsix` — no Marketplace publish.
 
 ## 1. PostgreSQL (required before running the Backend)
 
@@ -219,6 +220,29 @@ With the Backend running (`uv run uvicorn app.main:app --reload`) and PostgreSQL
 3. In a second terminal, open the same command with `TOKEN_B`. The first terminal prints a `{"type": "presence", "event": "connected", "user_id": "<user_b's id>"}` message.
 4. Ctrl-C the second terminal. The first prints `{"type": "presence", "event": "disconnected", "user_id": "<user_b's id>"}`.
 
+## 5. VS Code Extension
+
+```bash
+cd vscode-extension
+npm install
+npm run compile   # tsc -> out/extension.js
+```
+
+Lint and test:
+
+```bash
+npm run lint
+npm test
+```
+
+Package into a locally installable `.vsix` (backed by `@vscode/vsce`; no Marketplace publish involved):
+
+```bash
+npm run package
+```
+
+Verify: `vscode-extension/bmad-portal-vscode-<version>.vsix` exists. To run it interactively, open `vscode-extension/` in VS Code and press `F5` (Extension Development Host) — confirm the "BMad Portal" status bar item appears and the BMad Portal activity-bar icon opens the (placeholder) dashboard view with no console errors. See `vscode-extension/README.md` for the full command/settings reference.
+
 ## CI
 
 Every PR runs, via `.github/workflows/ci.yml`:
@@ -226,6 +250,7 @@ Every PR runs, via `.github/workflows/ci.yml`:
 - **Backend:** `ruff check .` + `pytest` (in `backend/`)
 - **Client:** `ruff check .` + `pytest` (in `client/`)
 - **IHM:** `npm run lint` + `npm test` (in `ihm/`)
+- **VS Code Extension:** `npm run lint` + `npm run compile` + `npm test` + `npm run package` (in `vscode-extension/`)
 
 A lint violation or failing test in any tier fails that tier's job and blocks merge.
 

@@ -1,0 +1,7 @@
+{
+  "name": "vscode",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Empty local stub so the bare specifier 'vscode' is resolvable under node:test's --experimental-test-module-mocks outside a real VS Code Extension Host. Real behavior always comes from t.mock.module('vscode', ...) in the test file — this stub is never imported for its own exports.",
+  "main": "index.js"
+}
