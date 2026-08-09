@@ -50,13 +50,13 @@
       "properties": {
         "bmadPortal.backendHubUrl": {
           "type": "string",
-          "default": "http://localhost:3000",
-          "description": "URL of the BMad Portal Backend Hub"
+          "default": "http://localhost:8000",
+          "description": "Base URL of the BMad Portal Backend Hub this extension connects to (WebSocket/REST)."
         },
         "bmadPortal.repoPollingIntervalSec": {
           "type": "number",
           "default": 300,
-          "description": "Interval in seconds for repository polling (default 5 minutes / 300s)"
+          "description": "Interval, in seconds, at which the extension polls local repo state and reports it to the Backend Hub. Real polling engine ships in Story 7.2."
         },
         "bmadPortal.authMethod": {
           "type": "string",
@@ -65,28 +65,33 @@
             "session",
             "oauth"
           ],
-          "default": "session",
-          "description": "Authentication method to use with the backend"
+          "default": "jwt",
+          "description": "Authentication method used to obtain the session token stored in VS Code Secret Storage. Real Secret Storage flow ships in Story 7.4."
         },
         "bmadPortal.dashboardDisplayMode": {
           "type": "string",
           "enum": [
-            "sidebar",
-            "panel",
+            "sidebarView",
+            "panelView",
             "webview"
           ],
-          "default": "sidebar",
-          "description": "Display mode for the dashboard widget"
+          "default": "sidebarView",
+          "description": "How the BMad Portal dashboard is displayed."
         },
-        "bmadPortal.autoConnect": {
+        "bmadPortal.enableEventDrivenPolling": {
           "type": "boolean",
           "default": true,
-          "description": "Automatically connect to the backend hub on startup"
+          "description": "When true, a detected local Git event triggers an immediate state upload without disrupting the next scheduled poll. Real override ships in Story 7.3."
         },
-        "bmadPortal.enableNotifications": {
+        "bmadPortal.dashboardRefreshIntervalSec": {
+          "type": "number",
+          "default": 60,
+          "description": "Interval, in seconds, at which dashboard Web View widgets refresh their data from the Backend Hub. Real widgets ship in Story 7.6."
+        },
+        "bmadPortal.claimsSuggestionsEnabled": {
           "type": "boolean",
           "default": true,
-          "description": "Enable notifications for BMad Portal events"
+          "description": "When true, claims suggestions are enabled in the Command Palette. Real suggestions ship in Story 7.7."
         }
       }
     },

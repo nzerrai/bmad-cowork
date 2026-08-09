@@ -2,16 +2,25 @@
 
 IDE-native access to the BMad Portal Backend Hub — the same Backend used by the Client Python agent and the IHM dashboard. This extension reports local Git/repo state on a configurable poll and reproduces the HUB dashboards (repo state, claims, risk signals) inside VS Code Web Views. It is an additive interface: it consumes the existing Backend WebSocket/REST APIs and never invents its own data model.
 
-This story (7.1) scaffolds the extension's contribution points and a minimal `activate()`. The features listed below as "later story" are placeholders only.
+## Onboarding & Setup
 
-## Commands
+### First Installation
 
-| Command ID | Title | Status |
-|---|---|---|
-| `bmadPortal.showDashboard` | BMad Portal: Show Dashboard | Opens the sidebar dashboard view container |
-| `bmadPortal.showSuggestedFeatures` | BMad Portal: Show Suggested Features | Placeholder — real claims/role-based suggestions ship in Story 7.7 |
+When you first install the BMad Portal Hub extension, it is ready to use out of the box with sensible defaults:
 
-## Settings (`bmadPortal.*`)
+- **Backend Hub URL**: `http://localhost:8000`
+- **Polling Interval**: 300 seconds (5 minutes)
+- **Dashboard Display Mode**: `sidebarView`
+- **Claims Suggestions**: Enabled
+- **Event-Driven Polling**: Enabled
+
+### Accessing Plugin Settings
+
+All configuration parameters are exposed through the VS Code Settings UI — no raw JSON editing required:
+
+1. Open VS Code Settings (`Ctrl+,` on Windows/Linux, `Cmd+,` on macOS)
+2. Navigate to **Extensions** → **BMad Portal Hub**
+3. Configure the following settings:
 
 | Setting | Type | Default | Description |
 |---|---|---|---|
@@ -21,8 +30,24 @@ This story (7.1) scaffolds the extension's contribution points and a minimal `ac
 | `bmadPortal.dashboardDisplayMode` | string | `sidebarView` | How the BMad Portal dashboard is displayed. |
 | `bmadPortal.enableEventDrivenPolling` | boolean | `true` | When true, a detected local Git event triggers an immediate state upload without disrupting the next scheduled poll. Real override ships in Story 7.3. |
 | `bmadPortal.dashboardRefreshIntervalSec` | number | `60` | Interval, in seconds, at which dashboard Web View widgets refresh their data from the Backend Hub. Real widgets ship in Story 7.6. |
+| `bmadPortal.claimsSuggestionsEnabled` | boolean | `true` | When true, claims suggestions are enabled in the Command Palette. Real suggestions ship in Story 7.7. |
 
-All settings are configurable through the native VS Code Settings UI (Settings → Extensions → BMad Portal) — no raw JSON editing required.
+### Accessibility & Theme Guidelines
+
+The BMad Portal Hub extension respects VS Code accessibility and theme guidelines:
+
+- **Theme Adaptation**: The extension automatically adapts to your VS Code theme (light or dark), using VS Code's built-in CSS variables for colors and contrast.
+- **Accessibility**: All UI components follow VS Code's accessibility standards, including full keyboard navigation support and WCAG AA contrast compliance.
+- **JWT/Token Security**: JWT and session tokens are never stored in plain settings or config files. They are stored securely in VS Code's `SecretStorage`.
+
+This story (7.1) scaffolds the extension's contribution points and a minimal `activate()`. The features listed below as "later story" are placeholders only.
+
+## Commands
+
+| Command ID | Title | Status |
+|---|---|---|
+| `bmadPortal.showDashboard` | BMad Portal: Show Dashboard | Opens the sidebar dashboard view container |
+| `bmadPortal.showSuggestedFeatures` | BMad Portal: Show Suggested Features | Placeholder — real claims/role-based suggestions ship in Story 7.7 |
 
 ## Views
 
