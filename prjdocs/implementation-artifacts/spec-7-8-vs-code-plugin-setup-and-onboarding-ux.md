@@ -2,13 +2,13 @@
 title: 'Story 7.8 VS Code Plugin Setup & Onboarding UX'
 type: 'feature'
 created: '2026-08-09'
-status: 'in-review'
+status: 'done'
 review_loop_iteration: 0
 followup_review_recommended: false
 context: ['prjdocs/planning-artifacts/epics.md', 'prjdocs/implementation-artifacts/epic-7-context.md', 'prjdocs/implementation-artifacts/spec-7-7-claims-visualization-and-command-palette-integration.md']
 warnings: []
 baseline_revision: '2bbf3318b4f5c5e5c7a4b0a9e6a3e8c4a2d5f6e7'
-final_revision: '2bbf3318b4f5c5e5c7a4b0a9e6a3e8c4a2d5f6e7'
+final_revision: '70fa70615024d374302a6e175efe2a93972cbbcb'
 ---
 
 <intent-contract>
