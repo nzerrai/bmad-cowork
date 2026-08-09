@@ -39,6 +39,10 @@
       {
         "command": "bmad-portal.reauthenticate",
         "title": "BMad Portal: Reauthenticate"
+      },
+      {
+        "command": "bmad-portal.showSuggestedFeatures",
+        "title": "BMad Portal: Show Suggested Features"
       }
     ],
     "configuration": {

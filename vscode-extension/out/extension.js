@@ -39,7 +39,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.dashboardWebviewProvider = exports.jwtStorage = exports.authManager = exports.stateReporter = exports.gitPoller = void 0;
+exports.featuresSuggester = exports.claimNotifications = exports.statusBarWidget = exports.dashboardWebviewProvider = exports.jwtStorage = exports.authManager = exports.stateReporter = exports.gitPoller = void 0;
 exports.activate = activate;
 exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
@@ -48,6 +48,9 @@ const state_reporter_1 = require("./state-reporter");
 const auth_manager_1 = require("./auth-manager");
 const jwt_storage_1 = require("./jwt-storage");
 const webview_provider_1 = require("./webview-provider");
+const status_bar_1 = require("./status-bar");
+const features_suggester_1 = require("./features-suggester");
+const claim_notifications_1 = require("./claim-notifications");
 async function activate(context) {
     // Initialize JWT storage and authentication manager first
     exports.jwtStorage = new jwt_storage_1.JwtStorageManager(context);
@@ -60,6 +63,13 @@ async function activate(context) {
     // Initialize and register webview provider
     exports.dashboardWebviewProvider = new webview_provider_1.DashboardWebviewViewProvider(context, exports.authManager, exports.jwtStorage);
     context.subscriptions.push(vscode.window.registerWebviewViewProvider(webview_provider_1.DashboardWebviewViewProvider.viewType, exports.dashboardWebviewProvider));
+    // Initialize Status Bar widget
+    exports.statusBarWidget = new status_bar_1.StatusBarWidget();
+    // Initialize claim notifications
+    const enableNotifications = vscode.workspace.getConfiguration('bmadPortal').get('enableNotifications', true);
+    exports.claimNotifications = new claim_notifications_1.ClaimNotifications(enableNotifications);
+    // Initialize features suggester
+    exports.featuresSuggester = new features_suggester_1.FeaturesSuggester(context);
     // Register commands
     const refreshDashboardCommand = vscode.commands.registerCommand('bmad-portal.refreshDashboard', async () => {
         vscode.window.showInformationMessage('BMad Portal: Dashboard refresh triggered');
@@ -104,7 +114,9 @@ async function activate(context) {
             vscode.window.showInformationMessage('BMad Portal: Re-authentication flow would be initiated here.');
         }
     });
-    context.subscriptions.push(refreshDashboardCommand, openDashboardCommand, disconnectCommand, reconnectCommand, reauthCommand);
+    // Register "BMad Portal: Show Suggested Features" Command Palette command
+    const showSuggestedFeaturesCommand = exports.featuresSuggester.registerCommand();
+    context.subscriptions.push(refreshDashboardCommand, openDashboardCommand, disconnectCommand, reconnectCommand, reauthCommand, showSuggestedFeaturesCommand);
     // Initialize extension state
     const backendHubUrl = vscode.workspace.getConfiguration('bmadPortal').get('backendHubUrl', 'http://localhost:3000');
     const authMethod = vscode.workspace.getConfiguration('bmadPortal').get('authMethod', 'session');
@@ -131,19 +143,41 @@ async function activate(context) {
                         if (exports.authManager) {
                             await exports.authManager.handleTokenExpiration();
                         }
+                        // Trigger claims expiration notification
+                        if (exports.claimNotifications) {
+                            exports.claimNotifications.showExpirationEvent('Unknown', 'now');
+                        }
                     }
                     else {
                         console.error('State report failed:', error);
                     }
                 }
             }
+            // Update Status Bar widget with current state
+            if (exports.statusBarWidget) {
+                const syncState = state.syncState || 'synced';
+                const statusConfig = {
+                    presence: 'connected',
+                    syncState: syncState,
+                    userRole: 'Dev',
+                    username: 'user'
+                };
+                exports.statusBarWidget.update(statusConfig);
+            }
         });
+    }
+    // Show initial claims available notification
+    if (exports.claimNotifications && isAuthenticated) {
+        exports.claimNotifications.showNewAvailableFeaturesEvent(['Dashboard Overview', 'My Claims', 'Risk Signals']);
     }
 }
 function deactivate() {
     // Cleanup on extension deactivation
     if (exports.gitPoller) {
         exports.gitPoller.stop();
+    }
+    if (exports.statusBarWidget) {
+        exports.statusBarWidget.dispose();
     }
     vscode.window.showInformationMessage('BMad Portal Hub extension deactivated');
 }

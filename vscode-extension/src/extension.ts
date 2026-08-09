@@ -11,12 +11,18 @@ import { StateReporter } from './state-reporter';
 import { AuthManager } from './auth-manager';
 import { JwtStorageManager } from './jwt-storage';
 import { DashboardWebviewViewProvider } from './webview-provider';
+import { StatusBarWidget, StatusConfig, SyncState, PresenceState } from './status-bar';
+import { FeaturesSuggester } from './features-suggester';
+import { ClaimNotifications, ClaimEvent } from './claim-notifications';
 
 export let gitPoller: GitPoller | undefined;
 export let stateReporter: StateReporter | undefined;
 export let authManager: AuthManager | undefined;
 export let jwtStorage: JwtStorageManager | undefined;
 export let dashboardWebviewProvider: DashboardWebviewViewProvider | undefined;
+export let statusBarWidget: StatusBarWidget | undefined;
+export let claimNotifications: ClaimNotifications | undefined;
+export let featuresSuggester: FeaturesSuggester | undefined;
 
 export async function activate(context: vscode.ExtensionContext) {
 	// Initialize JWT storage and authentication manager first
@@ -35,6 +41,16 @@ export async function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
 		vscode.window.registerWebviewViewProvider(DashboardWebviewViewProvider.viewType, dashboardWebviewProvider)
 	);
+
+	// Initialize Status Bar widget
+	statusBarWidget = new StatusBarWidget();
+
+	// Initialize claim notifications
+	const enableNotifications = vscode.workspace.getConfiguration('bmadPortal').get<boolean>('enableNotifications', true);
+	claimNotifications = new ClaimNotifications(enableNotifications);
+
+	// Initialize features suggester
+	featuresSuggester = new FeaturesSuggester(context);
 
 	// Register commands
 	const refreshDashboardCommand = vscode.commands.registerCommand(
@@ -100,12 +116,16 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 	);
 
+	// Register "BMad Portal: Show Suggested Features" Command Palette command
+	const showSuggestedFeaturesCommand = featuresSuggester.registerCommand();
+
 	context.subscriptions.push(
 		refreshDashboardCommand,
 		openDashboardCommand,
 		disconnectCommand,
 		reconnectCommand,
-		reauthCommand
+		reauthCommand,
+		showSuggestedFeaturesCommand
 	);
 
 	// Initialize extension state
@@ -138,12 +158,33 @@ export async function activate(context: vscode.ExtensionContext) {
 						if (authManager) {
 							await authManager.handleTokenExpiration();
 						}
+						// Trigger claims expiration notification
+						if (claimNotifications) {
+							claimNotifications.showExpirationEvent('Unknown', 'now');
+						}
 					} else {
 						console.error('State report failed:', error);
 					}
 				}
 			}
+
+			// Update Status Bar widget with current state
+			if (statusBarWidget) {
+				const syncState: SyncState = state.syncState as SyncState || 'synced';
+				const statusConfig: StatusConfig = {
+					presence: 'connected',
+					syncState: syncState,
+					userRole: 'Dev',
+					username: 'user'
+				};
+				statusBarWidget.update(statusConfig);
+			}
 		});
+	}
+
+	// Show initial claims available notification
+	if (claimNotifications && isAuthenticated) {
+		claimNotifications.showNewAvailableFeaturesEvent(['Dashboard Overview', 'My Claims', 'Risk Signals']);
 	}
 }
 
@@ -151,6 +192,9 @@ export function deactivate() {
 	// Cleanup on extension deactivation
 	if (gitPoller) {
 		gitPoller.stop();
+	}
+	if (statusBarWidget) {
+		statusBarWidget.dispose();
 	}
 	vscode.window.showInformationMessage('BMad Portal Hub extension deactivated');
 }
