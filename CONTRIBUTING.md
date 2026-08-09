@@ -250,7 +250,7 @@ Every PR runs, via `.github/workflows/ci.yml`:
 - **Backend:** `ruff check .` + `pytest` (in `backend/`)
 - **Client:** `ruff check .` + `pytest` (in `client/`)
 - **IHM:** `npm run lint` + `npm test` (in `ihm/`)
-- **VS Code Extension:** `npm run lint` + `npm run compile` + `npm test` (in `vscode-extension/`)
+- **VS Code Extension:** `npm run lint` + `npm run compile` + `npm test` + `npm run package` (in `vscode-extension/`)
 
 A lint violation or failing test in any tier fails that tier's job and blocks merge.
 

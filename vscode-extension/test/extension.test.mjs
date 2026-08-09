@@ -25,6 +25,7 @@ test('activate() registers commands, the status bar item, and the dashboard webv
   let webviewViewId;
 
   let showInformationMessageCallCount = 0;
+  const executedCommands = [];
 
   t.mock.module('vscode', {
     exports: {
@@ -33,7 +34,9 @@ test('activate() registers commands, the status bar item, and the dashboard webv
           registeredCommands.push({ command, handler });
           return disposable();
         },
-        executeCommand: async () => {},
+        executeCommand: async (command) => {
+          executedCommands.push(command);
+        },
       },
       window: {
         showInformationMessage: async () => {
@@ -75,6 +78,21 @@ test('activate() registers commands, the status bar item, and the dashboard webv
   assert.ok(
     commandIds.includes('bmadPortal.showSuggestedFeatures'),
     'bmadPortal.showSuggestedFeatures not registered',
+  );
+
+  // Cross-check against package.json's own declared activity-bar container
+  // id, not just a literal expected here: if the container id in
+  // package.json and the target this handler passes to executeCommand ever
+  // diverge, this must fail rather than the command silently opening nothing
+  // (or the wrong container) with a fully green CI run.
+  const declaredContainerId = pkg.contributes?.viewsContainers?.activitybar?.[0]?.id;
+  const showDashboardEntry = registeredCommands.find((entry) => entry.command === 'bmadPortal.showDashboard');
+  assert.ok(showDashboardEntry, 'bmadPortal.showDashboard handler was not captured');
+  await showDashboardEntry.handler();
+  assert.equal(
+    executedCommands.at(-1),
+    `workbench.view.extension.${declaredContainerId}`,
+    "bmadPortal.showDashboard didn't execute the command for package.json's declared activity-bar container",
   );
 
   assert.ok(statusBarItem, 'status bar item was not created');

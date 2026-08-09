@@ -9,3 +9,4 @@ node_modules/**
 .gitignore
 .vscodeignore
 *.vsix
+package-lock.json

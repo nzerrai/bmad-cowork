@@ -143,4 +143,5 @@ jobs:
       - name: Package (vsce)
         run: |
           npm run package
+          ls -- *.vsix
           rm -f *.vsix

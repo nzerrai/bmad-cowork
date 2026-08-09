@@ -8,6 +8,7 @@ followup_review_recommended: true
 context: ['{project-root}/prjdocs/implementation-artifacts/epic-7-context.md']
 warnings: []
 baseline_revision: 'a8d1261e6d27c7ff021807f991f69801578a4005'
+final_revision: 'accb8cd4efe361dd18a0946aaebe978deafd65b6'
 ---
 
 <intent-contract>
@@ -102,6 +103,21 @@ Deferred (see `deferred-work.md`): the pre-existing, unmodified `ihm` CI job pin
 
 Rejected as noise, unavoidable given the approach, or already the best available given environment constraints (9): a local devDependency literally named `vscode` (`file:test/stubs/vscode`) shadowing the real npm package name — deliberate and required by the mocking technique (the key name IS the specifier being resolved), already documented in the stub's own `description` field; `context.subscriptions.length === 4` being a "content-blind" count — supplementary to, not a replacement for, the more specific assertions already covering each of the four registrations individually; `eslint.config.mjs`'s `ignores` not covering `test/**` — superseded by the lint-scope patch above, which deliberately wants `test/**` linted, not ignored; running `npm run compile` as both an explicit CI step and again via `pretest` before `npm test` — mild redundancy, not a correctness issue, kept for clear per-step CI reporting; `media/icon.svg`'s hardcoded `fill="#000000"` — contradicted by VS Code's documented activity-bar icon model, which masks/recolors monochrome container icons per-theme regardless of the source fill value; the Activation and Configuration-defaults I/O matrix rows being verified via a mocked `vscode` module / direct `package.json` read rather than a real Extension Host or a real `vscode.workspace.getConfiguration` call — already explicitly disclosed in this spec's Design Notes and Verification's manual-check fallback, and the best available proxy given this environment has no VS Code GUI; a claimed missing `vscode-extension/package-lock.json` — contradicted, the file exists on disk (confirmed via `git status`) and was only omitted from the trimmed diff excerpt given to review layers for size reasons, not actually absent from the change.
 
+### 2026-08-09 — Review pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 5: (high 0, medium 1, low 4)
+- defer: 0
+- reject: 17: (high 0, medium 0, low 17)
+- addressed_findings:
+  - `[medium]` `[patch]` `vscode-extension/test/extension.test.mjs` now invokes the captured `bmadPortal.showDashboard` handler and asserts the `executeCommand` target it passes equals `workbench.view.extension.${declaredContainerId}` (cross-checked against `package.json`'s own declared activity-bar container id) — previously only the command's *registration* was asserted; the Verification Gap reviewer demonstrated the prior gap by mutating the hardcoded target string in `extension.ts` and showing all 5 tests still passed.
+  - `[low]` `[patch]` `.github/workflows/ci.yml`'s `vscode-extension` job's "Package" step now asserts the `.vsix` file exists (`ls -- *.vsix`) before removing it, so a `vsce package` that exits 0 without producing an artifact would fail CI instead of a silent no-op pass.
+  - `[low]` `[patch]` `vscode-extension/.vscode/launch.json` (+ matching `tasks.json` default build task) now ships an explicit "Run Extension" debug config, so README.md's/CONTRIBUTING.md's documented "press F5" step launches the Extension Development Host directly instead of relying on VS Code's implicit QuickPick fallback.
+  - `[low]` `[patch]` `vscode-extension/.vscodeignore` now excludes `package-lock.json` (previously shipped unnecessarily inside the packaged `.vsix`).
+  - `[low]` `[patch]` `CONTRIBUTING.md`'s CI section now lists `npm run package` alongside lint/compile/test for the `vscode-extension` job, matching what `.github/workflows/ci.yml`'s job actually runs (previously undocumented).
+
+Rejected as noise, already-settled prior-review decisions, factually incorrect, or out of this story's scope (17): `package.json`'s `repository.url` pointing to `nzerrai/bmad-cowork` flagged as a likely wrong/copy-pasted repo — contradicted, confirmed via `git remote -v` that this **is** the actual `origin` remote; `engines.node: ">=22.3.0"` as a blanket floor "contradicting" CONTRIBUTING's claim that build/lint only need Node 20.9 — not a real contradiction under npm's default (non-strict) engine-check behavior, and the exact tradeoff the prior review pass deliberately chose (fail-fast `npm install` warning on old Node) per this file's own prior triage entry; running `npm run compile` as both an explicit CI step and again via `pretest` — already rejected in the prior pass as mild, harmless redundancy; the `"vscode": "file:test/stubs/vscode"` shadow devDependency — already rejected in the prior pass as deliberate and required by the mocking technique; redundant view-id/command assertions split across `extension.test.mjs` and `package-manifest.test.mjs` — already the deliberate result of the prior pass's cross-check patch; no `LICENSE` file / missing `license` field surfacing a `vsce package` warning — already tracked as a deferred, pre-existing repo-wide gap in this file's prior triage entry and in `deferred-work.md`; missing CSP meta tag in the placeholder dashboard webview HTML — moot while `enableScripts: false`, and adding one now to a placeholder due for replacement in Stories 7.5/7.6 is premature; `deactivate()` never being unit-tested — it is an intentional no-op with nothing to assert; no top-level extension `icon` (PNG) for the Extensions view listing — not required by this story's Always list (which only requires the activity-bar container SVG, already present); `eslint.config.mjs`'s explicit `languageOptions` block being scoped only to `files: ['src/**/*.ts']` rather than also covering the linted `test/*.mjs` files — those files already lint clean under the tool defaults, a real but currently inert config gap not worth touching for a scaffold story; missing `enum` validation on `authMethod`/`dashboardDisplayMode` — out of scope per the intent's own "Never" boundary (real auth/dashboard logic, including its validation, belongs to Stories 7.4/7.6); missing `minimum` validation on the two interval settings — same "Never" boundary, belongs to the real polling engine (Story 7.2/7.6); CI running only on `ubuntu-latest` rather than a Windows/macOS matrix — matches the existing per-tier job pattern, which the intent explicitly directs this job to follow; missing `try`/`catch` around `activate()`'s registrations — defensive handling for a double-registration scenario that cannot occur under VS Code's normal single-activation lifecycle; no uncaught-rejection guard on `showDashboard`'s `executeCommand` call — same reasoning, defends against a VS Code-internal API failure that isn't a realistic scenario for this contribution; test files being run directly via `node --test` (bypassing the `pretest` compile hook) producing a confusing module-not-found error — only reachable by bypassing the documented `npm test` entry point.
+
 ## Design Notes
 
 `package.json`'s contribution model has no stable point for status bar items (only a VS Code-proposed, non-stable `statusBarItems` contribution exists) — the AC's "status bar widget" is satisfied by creating it programmatically in `extension.ts`'s `activate()`, which is the standard, stable way every published extension does this. Configuration key set: `backendHubUrl`, `repoPollingIntervalSec`, `authMethod`, `dashboardDisplayMode` are named verbatim in this story's AC; `enableEventDrivenPolling` and `dashboardRefreshIntervalSec` are pulled from Stories 7.3/7.6's AC text (the only other setting names the epic ever specifies), covering the AC's "etc." Publisher packaging uses a placeholder `publisher` id (`bmad-portal`) sufficient for `vsce package`'s local `.vsix` output — a real Marketplace publisher account is an operator action out of scope for "buildable and installable," which this story satisfies via local packaging, not a Marketplace listing.
@@ -117,3 +133,24 @@ Rejected as noise, unavoidable given the approach, or already the best available
 
 **Manual checks (if no CLI):**
 - Open `vscode-extension/` in VS Code and press F5 (Extension Development Host): confirm the status bar item appears and the BMad Portal activity-bar icon opens the (placeholder) dashboard view with no console errors.
+
+## Auto Run Result
+
+Status: done
+
+**Summary:** Story 7.1's implementation (VS Code extension skeleton: `package.json` contributions, `extension.ts`, tooling, CI job, docs) was already committed prior to this run (`accb8cd`). This run performed a fresh follow-up review pass (`review_loop_iteration` stayed `0`) requested by the prior pass's `followup_review_recommended: true`, applying 5 small patches on top.
+
+**Files changed this pass:**
+- `.github/workflows/ci.yml` -- the `vscode-extension` job's Package step now asserts the `.vsix` exists (`ls -- *.vsix`) before removing it
+- `CONTRIBUTING.md` -- CI section now lists `npm run package` for the `vscode-extension` job, matching `ci.yml`
+- `vscode-extension/.vscodeignore` -- now excludes `package-lock.json` from the packaged `.vsix`
+- `vscode-extension/.vscode/launch.json` (new) + `vscode-extension/.vscode/tasks.json` (new) -- explicit "Run Extension" F5 debug config + default build task
+- `vscode-extension/test/extension.test.mjs` -- now invokes the `bmadPortal.showDashboard` handler and asserts its `executeCommand` target matches `package.json`'s declared activity-bar container id
+- `prjdocs/implementation-artifacts/spec-7-1-vscode-extension-skeleton-and-packagejson-setup.md` -- this pass's Review Triage Log entry, frontmatter status
+
+**Review findings breakdown (this pass):** patch 5 (medium 1, low 4), defer 0, reject 17 (see Review Triage Log for detail — several rejects were prior-pass-settled decisions re-surfacing, one was a factually incorrect finding disproven via `git remote -v`).
+
+**Verification performed:** `npm run compile`, `npm run lint`, `npm test` (5/5 passing, including the new `showDashboard` assertion), and `npm run package` (produces a valid `.vsix`, `package-lock.json` confirmed excluded from its contents) all re-run after applying patches — all exit 0.
+
+**Residual risks:** None material. The pre-existing, unrelated `prjdocs/implementation-artifacts/sprint-status.yaml` modification (marking `7-1-...` as `done`) predates this run and is left uncommitted as a residual artifact, not part of this reviewed change.
+
