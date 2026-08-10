@@ -72,11 +72,11 @@ development_status:
   epic-2-retrospective: optional
 
   # Epic 3: Claims, Contributors & Team Sync View
-  epic-3: backlog
-  3-1-lease-based-story-claiming: backlog
+  epic-3: in-progress
+  3-1-lease-based-story-claiming: done
   3-2-auto-healing-sync-on-claim-conflict: blocked
-  3-3-dashboard-overview-health: ready-for-dev
-  3-4-contributor-views-with-status-indicators: backlog
+  3-3-dashboard-overview-health: done
+  3-4-contributor-views-with-status-indicators: done
   3-5-contributor-detail-panel: backlog
   3-6-one-click-re-sync: backlog
   3-7-real-time-notifications: backlog
