@@ -83,10 +83,10 @@ development_status:
   epic-3-retrospective: optional
 
   # Epic 4: Sprint & Ceremony Dashboard
-  epic-4: in-progress
+  epic-4: done
   4-1-sprint-status-display: done
   4-2-ceremony-list-and-status: done
-  4-3-deterministic-charts-generation: backlog
+  4-3-deterministic-charts-generation: done
   epic-4-retrospective: optional
 
   # Epic 5: Risk & Quality Signals
