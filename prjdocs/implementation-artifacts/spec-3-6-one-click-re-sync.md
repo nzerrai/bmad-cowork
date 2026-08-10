@@ -2,10 +2,10 @@
 title: 'Story 3.6 One-click Re-sync'
 type: 'feature'
 created: '2026-08-10'
-status: 'in-review'
+status: 'done'
 review_loop_iteration: 0
 baseline_revision: '9697b1d4b4842ff7acb74d486585c542e5ec71c0'
-final_revision: ''
+final_revision: '6d8a8ae76c4ebbe5724448640f6d2cd1434b714e'
 followup_review_recommended: false
 context: []
 warnings: []
