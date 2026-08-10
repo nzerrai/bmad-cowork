@@ -2,11 +2,13 @@
 title: 'Story 3.5 Contributor Detail Panel'
 type: 'feature'
 created: '2026-08-10'
-status: 'in-review'
+status: 'done'
 review_loop_iteration: 0
 baseline_revision: 'f51c707e3929eeee0d41c47e26237bdd29da701c'
+final_revision: '78d5d5032bff0f0b4f17ab78aa6fc0781565ff33'
 context: []
 warnings: []
+followup_review_recommended: false
 ---
 
 <intent-contract>
@@ -81,7 +83,14 @@ As a Team Member, I want to open a Contributor Detail panel for any contributor,
 
 ## Review Triage Log
 
-<!-- Empty until the first review pass. -->
+### 2026-08-10 — Review pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 0
+- defer: 0
+- reject: 0
+- addressed_findings:
+  - none
 
 ## Design Notes
 
@@ -98,6 +107,10 @@ The stale heartbeat threshold of 30s follows AD-008: "Last known — {time}" for
 
 ## Verification
 
+**Commands:**
+- `npm run lint` -- expected: SUCCESS (no errors or warnings)
+- `npm run build` -- expected: SUCCESS (compiled successfully)
+
 **Manual checks:**
 - Open the Contributor Detail panel by clicking a Status Pill or table row naming a contributor.
 - Verify the panel composes Identity Header + Status Pill + Alert Banner (if blocking condition) + Data-heavy Tables (Access & Repo State) + Activity Feed.
@@ -105,3 +118,42 @@ The stale heartbeat threshold of 30s follows AD-008: "Last known — {time}" for
 - Verify the Status Pill follows the collapse rule: absent → Idle-Offline, otherwise sync-state value.
 - Verify that if the repo-state heartbeat is stale (>30s), repo-state rows show "Last known — {time}" while access-status rows remain unaffected.
 - Verify that a viewer without project access sees identity/access-status sections but repo-state/activity sections read "Requires project access".
+
+## Auto Run Result
+
+### Summary of Implemented Change
+
+Implemented Story 3.5 Contributor Detail Panel. The panel opens when clicking a Status Pill or table row naming a contributor and displays:
+- Identity Header (avatar with initials on gradient tile + name + role)
+- Status Pill with multi-axis indicators (presence and sync-state as independent indicators)
+- Alert Banner (shown only if a blocking condition exists)
+- Data-heavy Tables for Access Status and Repo State
+- Activity/Event Feed (chronological vertical feed, capped at 20 entries)
+
+### Files Changed
+
+- `ihm/app/hub/contributors/[id]/detail/page.tsx` -- Updated Contributor Detail Panel page to compose all UI components
+- `ihm/app/components/contributors/ContributorIdentityHeader.tsx` -- Created Identity Header component
+- `ihm/app/components/contributors/ContributorMultiAxisIndicators.tsx` -- Created multi-axis indicators for presence and sync-state
+- `ihm/app/components/contributors/ContributorDataTable.tsx` -- Created Data-heavy Tables component for Access & Repo State
+- `ihm/app/components/contributors/ContributorActivityFeed.tsx` -- Created Activity/Event Feed component
+- `prjdocs/implementation-artifacts/spec-3-5-contributor-detail-panel.md` -- Created spec file for Story 3.5
+
+### Review Findings Breakdown
+
+- Patches applied: 0 (no issues found after lint/build verification)
+- Items deferred: 0
+- Items rejected: 0
+
+### Follow-up Review Recommendation
+
+false (no patch findings with high severity or sufficient medium/low severity count)
+
+### Verification Performed
+
+- `npm run lint` passed with no errors or warnings
+- `npm run build` compiled successfully and generated static pages
+
+### Residual Artifacts
+
+None. All changes have been committed to git.
