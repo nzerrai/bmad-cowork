@@ -5,6 +5,8 @@
  * Toasts are positioned in a non-obstructive area of the UI (e.g., top-right corner).
  */
 
+"use client";
+
 import React, { useEffect, useState } from "react";
 
 type ToastVariant = "success" | "warning" | "error" | "info";

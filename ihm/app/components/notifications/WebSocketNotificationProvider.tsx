@@ -5,7 +5,7 @@
  */
 
 import React, { useEffect, useRef } from "react";
-import { RealtimeConnection, ConnectionStatus, NotificationEvent } from "../../lib/websocket";
+import { RealtimeConnection, ConnectionStatus, NotificationEvent } from "../../../lib/websocket";
 import { useToast } from "../ui/toast-provider";
 
 interface WebSocketNotificationProviderProps {
@@ -56,7 +56,9 @@ export function WebSocketNotificationProvider({ children }: WebSocketNotificatio
               });
               break;
             default:
-              console.warn("Unknown notification event type:", event.type);
+              // Exhaustive check - all NotificationEvent types should be handled
+              const _exhaustiveCheck: never = event;
+              console.warn("Unknown notification event type:", _exhaustiveCheck);
           }
         },
       );

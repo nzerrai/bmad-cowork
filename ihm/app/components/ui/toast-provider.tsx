@@ -4,6 +4,8 @@
  * of the UI (top-right corner).
  */
 
+"use client";
+
 import React, { createContext, useContext, useState, ReactNode } from "react";
 import { Toast, ToastNotification, ToastId } from "./toast";
 
