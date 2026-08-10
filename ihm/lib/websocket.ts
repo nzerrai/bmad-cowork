@@ -4,11 +4,18 @@
  * — Story 3.3's Real-time Status Bar owns rendering `onStatusChange`'s
  * signal; mounting a connection with nothing observing/displaying it would
  * be dead-weight scope creep with no way to manually verify it did anything.
+ *
+ * Story 3.7: Real-time Notifications - Added support for notification events.
  */
 
 import { getToken } from "./auth";
 
 export type ConnectionStatus = "connecting" | "open" | "closed";
+
+export type NotificationEvent =
+  | { type: "claim_event"; userId: string; storyId: string; action: "claimed" | "released" }
+  | { type: "claim_conflict"; storyId: string; reason?: string }
+  | { type: "sync_complete"; storyId?: string; repository?: string };
 
 const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_BASE_URL ?? "ws://localhost:8000/ws";
 
@@ -41,7 +48,10 @@ export class RealtimeConnection {
   private stopped = true;
   private consecutiveHandshakeFailures = 0;
 
-  constructor(private readonly onStatusChange: (status: ConnectionStatus) => void) {}
+  constructor(
+    private readonly onStatusChange: (status: ConnectionStatus) => void,
+    private readonly onNotification?: (event: NotificationEvent) => void,
+  ) {}
 
   connect(): void {
     this.stopped = false;
@@ -75,6 +85,18 @@ export class RealtimeConnection {
       this.backoffMs = BASE_BACKOFF_MS;
       this.onStatusChange("open");
       this.startHeartbeat();
+    };
+
+    socket.onmessage = (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type && this.onNotification) {
+          // Dispatch notification event to the callback
+          this.onNotification(data as NotificationEvent);
+        }
+      } catch (error) {
+        console.warn("RealtimeConnection: failed to parse WebSocket message:", event.data);
+      }
     };
 
     socket.onclose = (event: CloseEvent) => {
