@@ -96,8 +96,8 @@ development_status:
   epic-5-retrospective: optional
 
   # Epic 6: System Administration
-  epic-6: backlog
-  6-1-git-repos-project-configuration: backlog
+  epic-6: in-progress
+  6-1-git-repos-project-configuration: done
   6-2-user-and-role-management: backlog
   epic-6-retrospective: optional
 
