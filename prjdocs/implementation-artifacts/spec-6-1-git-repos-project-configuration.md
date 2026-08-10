@@ -2,12 +2,13 @@
 title: 'Story 6.1 - Git/Repos Project Configuration'
 type: 'feature'
 created: '2026-08-10'
-status: 'in-review'
+status: 'done'
 review_loop_iteration: 0
 followup_review_recommended: false
 context: ['prjdocs/planning-artifacts/epics.md', 'prjdocs/implementation-artifacts/epic-6-context.md']
 warnings: []
 baseline_revision: '3350cc5f30f4f0cb970c4503d4543cee8864574d'
+final_revision: '0f816a3e95e5213fd90f10c4c823bfb59b7624d1'
 ---
 
 <intent-contract>
