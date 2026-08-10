@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { authFetch, getToken } from "@/lib/auth";
 import { GitReposProjectConfig } from "./git-repos-config/GitReposProjectConfig";
 import { SkeletonFormField } from "@/components/ui/skeleton/form-field";
+import { UserRoleManagement } from "./user-role-management/UserRoleManagement";
 
 type Role = "developer" | "product_manager" | "architect_tech_lead" | "ux_designer" | "admin";
 
@@ -19,6 +20,12 @@ interface GitReposConfig {
   primary_repo_url: string;
   backup_repo_url: string | null;
   webhook_url: string | null;
+}
+
+interface UserWithRole {
+  id: string;
+  email: string;
+  role: Role;
 }
 
 // Check if user has admin role
@@ -42,6 +49,8 @@ export default function SystemAdministrationPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isBackendReachable, setIsBackendReachable] = useState(true);
   const [config, setConfig] = useState<GitReposConfig | null>(null);
+  const [users, setUsers] = useState<UserWithRole[]>([]);
+  const [isUsersLoading, setIsUsersLoading] = useState(true);
 
   useEffect(() => {
     const token = getToken();
@@ -59,33 +68,50 @@ export default function SystemAdministrationPage() {
       return;
     }
 
-    // Fetch configuration data
-    fetchConfig(token, role);
+    // Fetch configuration data and users
+    fetchConfigAndUsers(token, role);
   }, [router]);
 
-  const fetchConfig = async (token: string, role: Role) => {
+  const fetchConfigAndUsers = async (token: string, role: Role) => {
     setIsLoading(true);
+    setIsUsersLoading(true);
+
+    // Fetch configuration data
     try {
-      const response = await authFetch("/hub/git-repos-config");
-      if (response.ok) {
-        const data = await response.json();
+      const configResponse = await authFetch("/hub/git-repos-config");
+      if (configResponse.ok) {
+        const data = await configResponse.json();
         setConfig(data);
-        setIsBackendReachable(true);
-      } else if (response.status === 503 || response.status === 502 || response.status === 504) {
+      } else if (configResponse.status === 503 || configResponse.status === 502 || configResponse.status === 504) {
         // Backend unreachable
         setIsBackendReachable(false);
-      } else {
+      }
+    } catch {
+      // Backend unreachable
+      setIsBackendReachable(false);
+    }
+
+    // Fetch users
+    try {
+      const usersResponse = await authFetch("/users/");
+      if (usersResponse.ok) {
+        const data = await usersResponse.json();
+        setUsers(data);
         setIsBackendReachable(true);
+      } else if (usersResponse.status === 503 || usersResponse.status === 502 || usersResponse.status === 504) {
+        // Backend unreachable
+        setIsBackendReachable(false);
       }
     } catch {
       // Backend unreachable
       setIsBackendReachable(false);
     } finally {
       setIsLoading(false);
+      setIsUsersLoading(false);
     }
   };
 
-  const handleSave = async (newConfig: GitReposConfig) => {
+  const handleSaveConfig = async (newConfig: GitReposConfig) => {
     if (!isBackendReachable) {
       return; // Save actions are disabled when Backend is unreachable
     }
@@ -112,7 +138,45 @@ export default function SystemAdministrationPage() {
     }
   };
 
-  if (isLoading) {
+  const handleSaveUserRole = async (userId: string, newRole: Role) => {
+    if (!isBackendReachable) {
+      // Save actions are disabled when Backend is unreachable
+      throw new Error("Backend unreachable");
+    }
+
+    const token = getToken();
+    if (!token) return;
+
+    try {
+      const response = await authFetch(`/users/${userId}/role`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ role: newRole }),
+      });
+
+      if (response.ok) {
+        // Update the user list with the new role
+        const updatedUser = await response.json();
+        setUsers((prevUsers) =>
+          prevUsers.map((u) => (u.id === updatedUser.id ? { ...u, role: updatedUser.role } : u))
+        );
+      } else if (response.status === 503 || response.status === 502 || response.status === 504) {
+        setIsBackendReachable(false);
+        throw new Error("Backend unreachable");
+      } else {
+        throw new Error("Failed to update user role");
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message === "Backend unreachable") {
+        setIsBackendReachable(false);
+      }
+      throw error;
+    }
+  };
+
+  if (isLoading || isUsersLoading) {
     return (
       <div className="flex flex-1 flex-col">
         <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-6 py-10">
@@ -131,6 +195,15 @@ export default function SystemAdministrationPage() {
               <SkeletonFormField label="Primary Repository URL" />
               <SkeletonFormField label="Backup Repository URL (Optional)" />
               <SkeletonFormField label="Webhook URL (Optional)" />
+            </div>
+          </section>
+
+          <section className="flex flex-col gap-6 rounded-md border border-border bg-surface px-4 py-6">
+            <h2 className="text-lg font-bold text-foreground">User & Role Management</h2>
+
+            <div className="flex flex-col gap-4">
+              <SkeletonFormField label="User Email" />
+              <SkeletonFormField label="Role" />
             </div>
           </section>
         </main>
@@ -154,9 +227,16 @@ export default function SystemAdministrationPage() {
           <GitReposProjectConfig
             config={config}
             isBackendReachable={isBackendReachable}
-            onSave={handleSave}
+            onSave={handleSaveConfig}
           />
         </section>
+
+        <UserRoleManagement
+          users={users}
+          isLoading={isUsersLoading}
+          isBackendReachable={isBackendReachable}
+          onSaveUserRole={handleSaveUserRole}
+        />
       </main>
     </div>
   );

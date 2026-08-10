@@ -8,7 +8,7 @@ cross-origin route the IHM tier calls. Story 2.1 adds the WebSocket Pillar
 (`/ws`, connection registry, presence broadcast, heartbeat). Story 2.5 adds
 the continuous local repo state reporting (`client_git_state_report` WebSocket
 handler, canonical state storage, 30s staleness threshold, hub state query
-API endpoints).
+API endpoints). Story 6.2 adds the user and role management API.
 """
 
 from fastapi import Depends, FastAPI
@@ -21,6 +21,7 @@ from app.config import IHM_ORIGIN
 from app.hub.router import router as hub_router
 from app.indexing.router import router as artifacts_router
 from app.realtime.router import router as realtime_router
+from app.users.router import router as users_router
 
 app = FastAPI(title="BMad Portal Hub Backend")
 
@@ -40,6 +41,7 @@ app.include_router(auth_router)
 app.include_router(artifacts_router)
 app.include_router(hub_router)
 app.include_router(realtime_router)
+app.include_router(users_router)
 
 
 @app.get("/health")
