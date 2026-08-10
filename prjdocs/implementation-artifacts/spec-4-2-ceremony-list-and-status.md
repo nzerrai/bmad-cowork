@@ -2,10 +2,10 @@
 title: 'Ceremony List and Status'
 type: 'feature'
 created: '2026-08-10'
-status: 'in-review'
+status: 'done'
 review_loop_iteration: 0
 baseline_revision: 'c123fb0ac767ce2d41821d72f59fb00226a589cc'
-final_revision: ''
+final_revision: '873bd53f6b34c77422a53b0a7ce2d58612debad5'
 followup_review_recommended: false
 context: ['prjdocs/implementation-artifacts/epic-4-context.md']
 ---
