@@ -90,8 +90,8 @@ development_status:
   epic-4-retrospective: optional
 
   # Epic 5: Risk & Quality Signals
-  epic-5: backlog
-  5-1-risk-signals-display: backlog
+  epic-5: in-progress
+  5-1-risk-signals-display: done
   5-2-quality-gates-verification-with-compliance-score-breakdown: backlog
   epic-5-retrospective: optional
 
