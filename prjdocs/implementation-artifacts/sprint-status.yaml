@@ -77,7 +77,7 @@ development_status:
   3-2-auto-healing-sync-on-claim-conflict: blocked
   3-3-dashboard-overview-health: done
   3-4-contributor-views-with-status-indicators: done
-  3-5-contributor-detail-panel: backlog
+  3-5-contributor-detail-panel: done
   3-6-one-click-re-sync: backlog
   3-7-real-time-notifications: backlog
   epic-3-retrospective: optional
