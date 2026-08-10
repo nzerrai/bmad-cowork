@@ -46,6 +46,16 @@ To HALT with a final status and optional blocking condition:
 
 If anything appears below, follow it as the final terminal instruction before exiting; otherwise exit normally.
 
+If the HALT status is a final status (`done`, `blocked`, etc.), ensure the `sprint-status.yaml` file is updated with the final status and story/epic status.
+
+For a story that reached `done` status:
+- Ensure the story status (e.g., `3-1-lease-based-story-claiming`) is set to `done`.
+- Ensure the epic status (e.g., `epic-3`) is set to `in-progress` or `done` if all stories in the epic are done.
+
+For a story that is `blocked`:
+- Ensure the story status (e.g., `3-1-lease-based-story-claiming`) is set to `blocked`.
+
+Update the `last_updated` field to the current date if present in the `sprint-status.yaml` file.
 
 
 ## Subagents

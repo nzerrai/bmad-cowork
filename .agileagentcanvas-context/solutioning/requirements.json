@@ -1,0 +1,133 @@
+{
+  "metadata": {
+    "schema": "requirements",
+    "generatedAt": "2026-08-09T19:18:16.625Z",
+    "description": "Auto-migrated requirements from PRD/requirementsInventory"
+  },
+  "content": {
+    "functional": [
+      {
+        "id": "FR-1",
+        "title": "Task CRUD Operations",
+        "description": "Users can create, read, update, and delete tasks with rich metadata including title, description, assignee, labels, priority, due date, and custom fields. All mutations publish domain events for real-time sync.",
+        "capabilityArea": "Core Platform",
+        "relatedEpics": [
+          "EPIC-1"
+        ],
+        "relatedStories": [
+          "S-1.1",
+          "S-1.2"
+        ]
+      },
+      {
+        "id": "FR-2",
+        "title": "AI Task Prioritization",
+        "description": "System automatically prioritizes tasks based on deadlines, dependencies, and team patterns using a machine learning model trained on historical completion data. Falls back to rule-based scoring when insufficient training data exists.",
+        "capabilityArea": "AI Engine",
+        "relatedEpics": [
+          "EPIC-2"
+        ],
+        "relatedStories": [
+          "S-2.1",
+          "S-2.2"
+        ]
+      },
+      {
+        "id": "FR-3",
+        "title": "Focus Mode",
+        "description": "Deep-work interface with notification batching and focus time tracking. Supports Pomodoro-style timers, P0 breakthrough alerts, and team-configurable notification rules.",
+        "capabilityArea": "Productivity",
+        "relatedEpics": [
+          "EPIC-3"
+        ],
+        "relatedStories": [
+          "S-3.1",
+          "S-3.2",
+          "S-3.3"
+        ]
+      },
+      {
+        "id": "FR-4",
+        "title": "Dependency Graph Visualization",
+        "description": "Interactive visual graph showing task dependencies and critical path. Users can click nodes to see details, highlight blocking chains, and identify bottlenecks in the project plan.",
+        "capabilityArea": "Visualization",
+        "relatedEpics": [
+          "EPIC-1"
+        ],
+        "relatedStories": [
+          "S-1.3"
+        ]
+      },
+      {
+        "id": "FR-5",
+        "title": "Sprint Planning Automation",
+        "description": "AI-assisted sprint planning with capacity-aware task assignment suggestions. The system accounts for team member PTO, meeting load, skill sets, and AI priority scores to propose an optimal sprint backlog.",
+        "capabilityArea": "AI Engine",
+        "relatedEpics": [
+          "EPIC-2"
+        ],
+        "relatedStories": [
+          "S-2.3"
+        ]
+      },
+      {
+        "id": "FR-6",
+        "title": "Integration Platform",
+        "description": "GitHub and Slack bidirectional integrations for seamless developer workflows. PRs auto-link to tasks, Slack slash commands manage tasks, and Focus Mode syncs with Slack DND status.",
+        "capabilityArea": "Integrations",
+        "relatedEpics": [
+          "EPIC-4"
+        ],
+        "relatedStories": [
+          "S-4.1",
+          "S-4.2",
+          "S-4.3"
+        ]
+      }
+    ],
+    "nonFunctional": [
+      {
+        "id": "NFR-1",
+        "title": "API Response Time",
+        "description": "p95 API latency under 200ms for all task CRUD operations under normal load conditions",
+        "category": "Performance",
+        "metrics": {
+          "target": "200ms",
+          "threshold": "500ms",
+          "unit": "milliseconds"
+        }
+      },
+      {
+        "id": "NFR-2",
+        "title": "Concurrent Users",
+        "description": "Support 10,000 concurrent users at launch with WebSocket connections for real-time updates and graceful degradation under peak load",
+        "category": "Scalability",
+        "metrics": {
+          "target": "10000",
+          "threshold": "5000",
+          "unit": "concurrent users"
+        }
+      },
+      {
+        "id": "NFR-3",
+        "title": "Security Compliance",
+        "description": "SOC 2 Type II compliant, E2E encryption for data in transit and at rest, RBAC with SSO support via SAML and OIDC",
+        "category": "Security"
+      },
+      {
+        "id": "NFR-4",
+        "title": "Availability",
+        "description": "99.9% uptime SLA with automated failover and zero-downtime deployments",
+        "category": "Reliability"
+      }
+    ],
+    "additional": [
+      {
+        "id": "ADD-1",
+        "title": "CLI Tool",
+        "description": "Command-line interface for task management, targeting power-user developers who prefer terminal workflows over web UI",
+        "category": "Developer Experience"
+      }
+    ]
+  }
+}

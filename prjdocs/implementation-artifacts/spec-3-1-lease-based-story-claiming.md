@@ -2,12 +2,13 @@
 title: 'Lease-based Story Claiming'
 type: 'feature'
 created: '2026-08-10'
-status: 'in-review'
+status: 'done'
 review_loop_iteration: 0
-followup_review_recommended: false
+followup_review_recommended: true
 context: []
 warnings: []
 baseline_revision: '8aa372f038483d17cd7cee3d41c13553fb831278'
+final_revision: '1783e7116ff72bd671e621f8582416cfa79b9918'
 ---
 
 <intent-contract>
