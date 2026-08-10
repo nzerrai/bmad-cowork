@@ -75,7 +75,7 @@ development_status:
   epic-3: backlog
   3-1-lease-based-story-claiming: backlog
   3-2-auto-healing-sync-on-claim-conflict: blocked
-  3-3-dashboard-overview-health: backlog
+  3-3-dashboard-overview-health: ready-for-dev
   3-4-contributor-views-with-status-indicators: backlog
   3-5-contributor-detail-panel: backlog
   3-6-one-click-re-sync: backlog

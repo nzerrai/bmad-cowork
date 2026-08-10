@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { getToken } from "@/lib/auth";
 import { AlertBanner } from "@/app/components/ui/alert-banner";
 import { StatusPill } from "@/app/components/ui/status-pill";
@@ -16,32 +17,28 @@ interface SpaceData {
   access_grant_fallback_text?: string | null;
 }
 
+// Mock data for demonstration
+const MOCK_SPACE_DATA: SpaceData = {
+  space_id: "mock-space-id",
+  technical_identifier: "github.com/org/repo",
+  short_name: "repo",
+  status: "pending",
+  access_grant_link: "Accordez l'accès en lecture au dépôt sur GitHub : https://github.com/org/repo/settings/keys",
+  access_grant_fallback_text: null,
+};
+
 export default function HubSpacesPage() {
-  const [space, setSpace] = useState<SpaceData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const space = MOCK_SPACE_DATA;
+  const loading = false;
+  const error = null;
 
   useEffect(() => {
     const token = getToken();
     if (!token) {
-      window.location.href = "/login";
-      return;
+      router.push("/login");
     }
-
-    // Simulate fetching space data - in production, this would come from an API or WebSocket
-    // For now, we'll simulate a pending space state for demonstration
-    const mockSpaceData: SpaceData = {
-      space_id: "mock-space-id",
-      technical_identifier: "github.com/org/repo",
-      short_name: "repo",
-      status: "pending",
-      access_grant_link: "Accordez l'accès en lecture au dépôt sur GitHub : https://github.com/org/repo/settings/keys",
-      access_grant_fallback_text: null,
-    };
-
-    setSpace(mockSpaceData);
-    setLoading(false);
-  }, []);
+  }, [router]);
 
   if (loading) {
     return (
