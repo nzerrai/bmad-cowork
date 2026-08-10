@@ -89,10 +89,17 @@ class TestGitStateDetection(unittest.TestCase):
     def test_get_local_drift_no_upstream(self):
         """Test get_local_drift() when no upstream is configured."""
         with patch("agent.git_state._run_git_command") as mock_run:
-            # First call fails (no upstream), second call succeeds (branch name), third call succeeds (drift)
+            # Calls:
+            # 1: rev-list with upstream fails
+            # 2: branch --show-current succeeds
+            # 3: rev-parse --symbolic-full-name @{upstream} fails
+            # 4: branch --show-current --show-upstream fails
+            # 5: rev-list with origin/main succeeds
             mock_run.side_effect = [
                 (False, ""),  # rev-list with upstream fails
                 (True, "main"),  # branch --show-current
+                (False, ""),  # rev-parse --symbolic-full-name @{upstream} fails
+                (False, ""),  # branch --show-current --show-upstream fails
                 (True, "0\t0"),  # rev-list with origin/main
             ]
             drift = get_local_drift(self.test_dir)
@@ -102,11 +109,8 @@ class TestGitStateDetection(unittest.TestCase):
         """Test get_in_progress_git_action() returns None when no action is in progress."""
         # Ensure no merge/rebase files exist and ls-files --unmerged returns empty
         with patch("agent.git_state._run_git_command") as mock_run:
-            # Merge head and rebase dirs don't exist, ls-files --unmerged returns empty
-            mock_run.side_effect = [
-                (False, ""),  # status --porcelain
-                (False, ""),  # ls-files --unmerged returns empty
-            ]
+            # ls-files --unmerged returns empty
+            mock_run.return_value = (False, "")
             action = get_in_progress_git_action(self.test_dir)
             self.assertIsNone(action)
 
@@ -133,12 +137,7 @@ class TestGitStateDetection(unittest.TestCase):
         """Test get_in_progress_git_action() detects conflict state."""
         # Mock ls-files --unmerged to return unmerged files
         with patch("agent.git_state._run_git_command") as mock_run:
-            # Simulate: merge head check (os.path.exists returns False), rebase check (False),
-            # status --porcelain (no unmerged), ls-files --unmerged (has unmerged)
-            mock_run.side_effect = [
-                (False, ""),  # status --porcelain
-                (True, "100644 abc123 1\tfile.txt\n100644 def456 2\tfile.txt\n"),  # ls-files --unmerged
-            ]
+            mock_run.return_value = (True, "100644 abc123 1\tfile.txt\n100644 def456 2\tfile.txt\n")
             action = get_in_progress_git_action(self.test_dir)
             self.assertEqual(action, "conflict")
 

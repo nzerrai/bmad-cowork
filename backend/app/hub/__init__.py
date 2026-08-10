@@ -3,7 +3,6 @@
 from app.hub.git_state_models import ContributorGitState
 from app.hub.git_state_service import (
     get_contributor_git_state,
-    get_contributor_git_state_by_identifier,
     is_contributor_active,
 )
 from app.hub.models import HubStatus, Space
@@ -22,7 +21,6 @@ __all__ = [
     "detect_git_provider",
     "generate_access_grant_link",
     "get_contributor_git_state",
-    "get_contributor_git_state_by_identifier",
     "get_or_create_space",
     "is_contributor_active",
 ]

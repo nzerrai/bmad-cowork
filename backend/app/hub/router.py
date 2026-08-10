@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import get_current_user
 from app.auth.models import User
 from app.db import SessionLocal
-from app.hub.git_state_service import get_contributor_git_state, get_contributor_git_state_by_identifier
+from app.hub.git_state_service import get_contributor_git_state
 
 router = APIRouter()
 
@@ -44,25 +44,6 @@ def get_git_state_by_user(user_id: str, db: Session = Depends(get_db), current_u
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Git state not found for this contributor",
-        )
-
-    return git_state
-
-
-@router.get("/hub/git-state/by-identifier/{technical_identifier}")
-def get_git_state_by_identifier(technical_identifier: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> dict:
-    """Retrieve the canonical Git state by technical identifier.
-
-    Returns the state dictionary with staleness information.
-    Implements AD-008: one stream, one canonical read model.
-    Requires authenticated user context.
-    """
-    git_state = get_contributor_git_state_by_identifier(db, technical_identifier)
-
-    if git_state is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Git state not found for this repository",
         )
 
     return git_state

@@ -25,20 +25,6 @@ def get_contributor_git_state(db: Session, user_id: UUID) -> dict | None:
     return _format_git_state_with_staleness(git_state)
 
 
-def get_contributor_git_state_by_identifier(db: Session, technical_identifier: str) -> dict | None:
-    """Retrieve the canonical Git state by technical identifier.
-
-    Returns the state dictionary with staleness information.
-    """
-    # Note: ContributorGitState is keyed by user_id, but we can query by technical_identifier
-    git_state = db.query(ContributorGitState).filter(
-        ContributorGitState.technical_identifier == technical_identifier
-    ).first()
-
-    if not git_state:
-        return None
-
-    return _format_git_state_with_staleness(git_state)
 
 
 def _format_git_state_with_staleness(git_state: ContributorGitState) -> dict:
