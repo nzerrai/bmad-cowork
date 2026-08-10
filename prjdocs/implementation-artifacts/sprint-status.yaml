@@ -85,7 +85,7 @@ development_status:
   # Epic 4: Sprint & Ceremony Dashboard
   epic-4: in-progress
   4-1-sprint-status-display: done
-  4-2-ceremony-list-and-status: backlog
+  4-2-ceremony-list-and-status: done
   4-3-deterministic-charts-generation: backlog
   epic-4-retrospective: optional
 
