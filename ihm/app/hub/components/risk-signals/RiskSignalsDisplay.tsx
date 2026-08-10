@@ -79,7 +79,7 @@ export function RiskSignalsDisplay({ signals }: RiskSignalsDisplayProps) {
       {signals.staleStories.length > 0 && (
         <div className="flex flex-col gap-3">
           <h3 className="font-sans text-xs font-bold tracking-wider text-text-secondary uppercase">
-            Stale Stories (in-progress without activity > 3 days)
+            Stale Stories (in-progress without activity {"&gt;"} 3 days)
           </h3>
           <div className="overflow-x-auto rounded-md border border-border bg-surface-inset">
             <table className="w-full min-w-[320px] border-collapse text-sm">
@@ -149,7 +149,7 @@ export function RiskSignalsDisplay({ signals }: RiskSignalsDisplayProps) {
       {signals.prsAwaitingReview.length > 0 && (
         <div className="flex flex-col gap-3">
           <h3 className="font-sans text-xs font-bold tracking-wider text-text-secondary uppercase">
-            PRs Awaiting Review (> 48 hours)
+            PRs Awaiting Review ({"&gt;"} 48 hours)
           </h3>
           <div className="overflow-x-auto rounded-md border border-border bg-surface-inset">
             <table className="w-full min-w-[360px] border-collapse text-sm">

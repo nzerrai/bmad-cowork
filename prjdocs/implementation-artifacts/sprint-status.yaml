@@ -92,7 +92,7 @@ development_status:
   # Epic 5: Risk & Quality Signals
   epic-5: in-progress
   5-1-risk-signals-display: done
-  5-2-quality-gates-verification-with-compliance-score-breakdown: backlog
+  5-2-quality-gates-verification-with-compliance-score-breakdown: done
   epic-5-retrospective: optional
 
   # Epic 6: System Administration
