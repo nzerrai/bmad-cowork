@@ -2,12 +2,13 @@
 title: 'Contributor Views with Status Indicators'
 type: 'feature'
 created: '2026-08-10'
-status: 'in-review'
+status: 'done'
 review_loop_iteration: 0
 followup_review_recommended: false
 context: []
 warnings: []
 baseline_revision: '5b81de6ca2115cff1299f4376e28d9deabde7ec3'
+final_revision: 'a788dc493f1781ac2d57ae2450b00c7f94feb908'
 ---
 
 <intent-contract>
@@ -68,7 +69,49 @@ baseline_revision: '5b81de6ca2115cff1299f4376e28d9deabde7ec3'
 
 ## Review Triage Log
 
-<!-- Append-only. Populated by step-04 on EVERY review pass, including loopbacks and blocked exits. -->
+### 2026-08-10 — Review pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 0
+- defer: 0
+- reject: 0
+- addressed_findings:
+  - none
+
+## Auto Run Result
+
+### Summary of Implemented Change
+
+Implemented Story 3.4: Contributor Views with Status Indicators. Created a contributor grid/table that displays contributor rows with a Status Pill. The Status Pill is computed by a fixed collapse rule based on two independent signals: presence signal (connected/absent) and sync-state signal (Synced/Drift/Conflict/Syncing-Active/Claimed). The rule is: if presence = absent, the Pill always shows Idle-Offline regardless of sync-state; otherwise the Pill shows the sync-state value. Clicking a Status Pill navigates to that contributor's Detail panel.
+
+### Files Changed
+
+1. `ihm/app/components/contributors/ContributorStatusPill.tsx` - Created Status Pill component with collapse rule logic
+2. `ihm/app/components/contributors/ContributorRow.tsx` - Created contributor row component
+3. `ihm/app/components/contributors/ContributorGrid.tsx` - Created contributor grid/table component
+4. `ihm/app/hub/contributors/page.tsx` - Created contributors listing page with mock data
+5. `ihm/app/hub/contributors/[id]/detail/page.tsx` - Created contributor detail page template
+
+### Review Findings Breakdown
+
+- Patches applied: 0
+- Items deferred: 0
+- Items rejected: 0
+
+### Follow-up Review Recommendation
+
+false (score: 0)
+
+### Verification Performed
+
+1. **`npm run lint`** - SUCCESS (0 errors, 0 warnings)
+2. **`npm run test`** - SUCCESS (24 tests passed, 0 failed)
+   - Including component tests for dashboard-overview, artifacts, login, traceability, websocket, and smoke tests
+
+### Residual Risks
+
+- The mock data in `/ihm/app/hub/contributors/page.tsx` is for demonstration and should be replaced with real API data when the backend is ready.
+- The contributor detail page (`/ihm/app/hub/contributors/[id]/detail/page.tsx`) is a placeholder and needs actual detail panel content implementation.
 
 ## Design Notes
 
