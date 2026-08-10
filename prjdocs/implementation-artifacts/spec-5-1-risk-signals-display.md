@@ -2,12 +2,13 @@
 title: '5-1-risk-signals-display'
 type: 'feature'
 created: '2026-08-10'
-status: 'in-review'
+status: 'done'
 review_loop_iteration: 0
 followup_review_recommended: false
 context: []
 warnings: []
 baseline_revision: '2d251c3fbeeab4914a4f9a4655a6575228f6624d'
+final_revision: '6eaabdd868e666c9c2af9c38bdb6447838359e0e'
 ---
 
 <!-- Aim for 900–1600 tokens. If larger, add `oversized` to frontmatter `warnings` and continue.
