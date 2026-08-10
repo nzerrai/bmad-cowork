@@ -1,0 +1,152 @@
+diff --git a/backend/app/lease_service.py b/backend/app/lease_service.py
+index b55e8ef..dfc823a 100644
+--- a/backend/app/lease_service.py
++++ b/backend/app/lease_service.py
+@@ -130,3 +130,44 @@ class LeaseService:
+             story_id for story_id, lease in self._leases.items()
+             if lease.is_active()
+         ]
++
++    def detect_claim_conflict(self, story_id: str, claimant_id: uuid.UUID) -> bool:
++        """Detect if there's a conflict on an active claim.
++
++        Returns True if there is a conflict (e.g., lease exists but claimant doesn't match,
++        or lease was rejected/has expired state), False otherwise.
++        """
++        lease = self._leases.get(story_id)
++        if not lease:
++            # No lease exists, no conflict
++            return False
++
++        if not lease.is_active():
++            # Lease is expired, this is a conflict state
++            return True
++
++        # Check if the claimant matches the active lease
++        if str(lease.claimant_id) != str(claimant_id):
++            # Different claimant for active lease - conflict detected
++            return True
++
++        return False
++
++    def is_claim_rejected(self, story_id: str, claimant_id: uuid.UUID) -> bool:
++        """Check if a claim was rejected for a story.
++
++        A claim is considered rejected if:
++        - The story is claimed by a different claimant
++        - The lease has expired or is inactive
++        """
++        lease = self._leases.get(story_id)
++
++        # If no lease exists or lease is inactive, claim was rejected/expired
++        if not lease or not lease.is_active():
++            return True
++
++        # If claimant doesn't match the active lease's claimant, claim was rejected
++        if str(lease.claimant_id) != str(claimant_id):
++            return True
++
++        return False
+diff --git a/backend/app/websocket_handlers.py b/backend/app/websocket_handlers.py
+index 81616c9..b4496d3 100644
+--- a/backend/app/websocket_handlers.py
++++ b/backend/app/websocket_handlers.py
+@@ -46,3 +46,33 @@ class WebSocketHandlers:
+         Returns the list of story_ids that were expired.
+         """
+         return self.lease_service.cleanup_expired_leases()
++
++    def signal_sync_required(self, user_id: uuid.UUID, reason: str = "claim_conflict") -> None:
++        """Signal a client to automatically synchronize its state with the Backend/Remote Repo.
++
++        This is triggered when a claim is rejected or a conflict is detected on an active claim.
++        The Backend signals the Client to automatically synchronize its state without manual refresh.
++
++        Args:
++            user_id: The UUID of the user whose client should sync.
++            reason: The reason for the sync signal (e.g., 'claim_conflict', 'claim_rejected').
++        """
++        sync_message = {
++            "type": "sync_required",
++            "reason": reason,
++            "auto_heal": True
++        }
++
++        # Broadcast the sync signal to the user's WebSocket connection(s)
++        # The connection manager will send the message to all connections for this user
++        import asyncio
++        from app.realtime.router import manager as connection_manager
++
++        # Send sync signal via the connection manager's broadcast mechanism
++        # We need to get the user's websocket(s) and send the message
++        for ws in list(connection_manager._connections.get(user_id, set())):
++            try:
++                # Send sync signal to the client
++                asyncio.create_task(ws.send_json(sync_message))
++            except Exception:  # noqa: BLE001 - log but don't fail the sync signal
++                pass
+diff --git a/client/agent/realtime.py b/client/agent/realtime.py
+index aec695b..88d1d2e 100644
+--- a/client/agent/realtime.py
++++ b/client/agent/realtime.py
+@@ -57,12 +57,58 @@ async def _send_heartbeats(connection: websockets.ClientConnection, interval: fl
+ 
+ 
+ async def _receive_messages(connection: websockets.ClientConnection) -> None:
+-    """Drain/log incoming messages. No consumer yet - protocol exists, no
+-    payload to act on until a later story attaches one to the envelope."""
++    """Drain/log incoming messages and handle sync signals for auto-healing.
++
++    Protocol exists; payload to act on includes the `sync_required` message type
++    for auto-healing sync on claim conflict.
++    """
+     async for message in connection:
++        # Handle sync_required messages for auto-healing sync on claim conflict
++        if isinstance(message, str):
++            try:
++                msg_data = json.loads(message)
++                if isinstance(msg_data, dict) and msg_data.get("type") == "sync_required":
++                    reason = msg_data.get("reason", "claim_conflict")
++                    auto_heal = msg_data.get("auto_heal", False)
++
++                    if auto_heal:
++                        logger.info("Received sync_required signal with reason: %s, triggering auto-healing sync", reason)
++                        # Trigger auto-healing sync - client automatically synchronizes its state
++                        # with the Backend/Remote Repo without manual refresh
++                        await _trigger_auto_healing_sync(connection)
++            except json.JSONDecodeError:
++                pass
++
+         logger.debug("Received message: %s", message)
+ 
+ 
++async def _trigger_auto_healing_sync(connection: websockets.ClientConnection) -> None:
++    """Trigger auto-healing sync to synchronize local state with Backend/Remote Repo.
++
++    This is called when a sync_required signal is received with auto_heal=True.
++    The client automatically synchronizes its state without manual refresh or user intervention.
++    """
++    try:
++        # Request a git state report to synchronize local state with backend
++        # This ensures the local view reflects the corrected state
++        from .git_state import scan_repository
++
++        state = scan_repository(".")
++        sync_report = {
++            "type": "client_git_state_report",
++            "technical_identifier": state.get("technical_identifier"),
++            "branch": state.get("branch"),
++            "ahead": state.get("ahead", 0),
++            "behind": state.get("behind", 0),
++            "in_progress_action": state.get("in_progress_action", "none"),
++            "is_bmad_enabled": state.get("is_bmad_enabled", False),
++        }
++        await connection.send(json.dumps(sync_report))
++        logger.info("Auto-healing sync triggered: sent client_git_state_report")
++    except Exception:  # noqa: BLE001
++        logger.warning("Failed to trigger auto-healing sync")
++
++
+ async def _watch_stop(stop_event: asyncio.Event) -> None:
+     await stop_event.wait()
+     raise _StopRequested
