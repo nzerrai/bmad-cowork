@@ -1,5 +1,8 @@
 ---
 baseline_commit: 3a951f5c4a092053bd432303df06de6bf9d319d2
+final_revision: 781e7cde1d8ec43309f9aa6693ce9a50500f5ff5
+followup_review_recommended: false
+status: done
 ---
 
 # Story 2.5: Continuous Local Repo State Reporting
