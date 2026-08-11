@@ -50,6 +50,19 @@ _UNAUTHORIZED_CODE = 4401
 _FORBIDDEN_ORIGIN_CODE = 4403
 
 
+@router.get("/ws/status")
+async def ws_status() -> dict:
+    """Get status of active WebSocket connections."""
+    connections_count = sum(len(conns) for conns in manager._connections.values())
+    connected_users = [str(uid) for uid in manager._connections.keys()]
+
+    return {
+        "total_connections": connections_count,
+        "connected_users_count": len(connected_users),
+        "connected_users": connected_users
+    }
+
+
 def _resolve_user_sync(token: str | None):
     """Runs in a threadpool: opens a session scoped to just this lookup,
     not the whole WebSocket connection's lifetime (unlike `Depends(get_db)`,

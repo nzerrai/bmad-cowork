@@ -51,16 +51,47 @@ class _StopRequested(Exception):
 
 
 async def _send_heartbeats(connection: websockets.ClientConnection, interval: float) -> None:
+    logger.debug("Starting heartbeat sender with interval: %s seconds", interval)
     while True:
+        logger.debug("Sending heartbeat to HUB")
         await connection.send(json.dumps({"type": "heartbeat"}))
+        logger.debug("Heartbeat sent successfully")
         await asyncio.sleep(interval)
 
 
 async def _receive_messages(connection: websockets.ClientConnection) -> None:
-    """Drain/log incoming messages. No consumer yet - protocol exists, no
-    payload to act on until a later story attaches one to the envelope."""
+    """Drain/log incoming messages and handle space_joined responses.
+
+    Processes incoming messages from the Backend. Handles the space_joined
+    response from the client_identity_report flow and stores the space
+    information locally for the Client's subsequent operations.
+    """
+    # Store space information locally
+    _space_info = None
+
+    logger.debug("Starting message receiver from HUB")
     async for message in connection:
-        logger.debug("Received message: %s", message)
+        try:
+            logger.debug("Received raw message from HUB: %s", message)
+            data = json.loads(message)
+            msg_type = data.get("type")
+
+            if msg_type == "space_joined":
+                _space_info = data
+                logger.info("[HUB] Space joined received: space_id=%s, technical_identifier=%s, short_name=%s, status=%s",
+                           data.get("space_id"), data.get("technical_identifier"),
+                           data.get("short_name"), data.get("status"))
+                logger.debug("Space information stored locally: %s", _space_info)
+            elif msg_type == "client_git_state_report":
+                logger.debug("[HUB] Received client_git_state_report: %s", data)
+            elif msg_type == "heartbeat":
+                logger.debug("[HUB] Received heartbeat response")
+            else:
+                logger.debug("[HUB] Received message of type '%s': %s", msg_type, data)
+        except json.JSONDecodeError:
+            logger.debug("Received non-JSON message from HUB: %s", message)
+        except Exception:  # noqa: BLE001
+            logger.warning("Error processing incoming message from HUB: %s", message)
 
 
 async def _watch_stop(stop_event: asyncio.Event) -> None:
@@ -86,7 +117,10 @@ async def _send_git_state_report(connection: websockets.ClientConnection, repo_p
         connection: The WebSocket connection.
         repo_path: Path to the Git repository to scan.
     """
+    logger.debug("Scanning repository for Git state report: repo_path=%s", repo_path)
     state = scan_repository(repo_path)
+    logger.debug("Repository scan completed: %s", state)
+
     report = {
         "type": "client_git_state_report",
         "technical_identifier": state.get("technical_identifier"),
@@ -97,10 +131,11 @@ async def _send_git_state_report(connection: websockets.ClientConnection, repo_p
         "is_bmad_enabled": state.get("is_bmad_enabled", False),
     }
     try:
+        logger.debug("Sending client_git_state_report to HUB: %s", report)
         await connection.send(json.dumps(report))
-        logger.debug("Sent client_git_state_report: %s", report)
+        logger.debug("client_git_state_report sent successfully to HUB")
     except Exception:  # noqa: BLE001
-        logger.warning("Failed to send client_git_state_report")
+        logger.warning("Failed to send client_git_state_report to HUB")
 
 
 async def _send_client_identity_report(connection: websockets.ClientConnection, repo_path: str = ".") -> None:
@@ -113,20 +148,25 @@ async def _send_client_identity_report(connection: websockets.ClientConnection, 
         connection: The WebSocket connection.
         repo_path: Path to the Git repository to scan.
     """
+    logger.debug("Starting client identity report process for repository: repo_path=%s", repo_path)
+    logger.debug("Scanning repository to get remote identity")
     remote_identity = scan_repository(repo_path).get("remote_identity")
+
     if not remote_identity:
         logger.debug("No remote identity found, skipping client_identity_report")
         return
 
+    logger.debug("Remote identity found: %s", remote_identity)
     report = {
         "type": "client_identity_report",
         "technical_identifier": remote_identity,
     }
     try:
+        logger.debug("Sending client_identity_report to HUB: %s", report)
         await connection.send(json.dumps(report))
-        logger.debug("Sent client_identity_report: %s", remote_identity)
+        logger.debug("client_identity_report sent successfully to HUB with technical_identifier: %s", remote_identity)
     except Exception:  # noqa: BLE001
-        logger.warning("Failed to send client_identity_report")
+        logger.warning("Failed to send client_identity_report to HUB")
 
 
 async def _sync_state_reporter(connection: websockets.ClientConnection, stop_event: asyncio.Event, repo_path: str = ".", repo_polling_interval_sec: float = 10.0) -> None:
@@ -146,14 +186,30 @@ async def _sync_state_reporter(connection: websockets.ClientConnection, stop_eve
         repo_path: Path to the Git repository to scan.
         repo_polling_interval_sec: Configurable interval in seconds between periodic scans (default 10).
     """
+    logger.debug("Starting state reporter for repository: repo_path=%s, polling_interval=%ss", repo_path, repo_polling_interval_sec)
+
+    # Send client identity report immediately on Client startup/connection
+    logger.debug("Step 1: Sending client identity report to HUB on startup")
+    if not stop_event.is_set():
+        await _send_client_identity_report(connection, repo_path)
+    else:
+        logger.debug("Stop event is set, skipping client identity report")
+
     # Send initial state report immediately on Client startup/connection
+    logger.debug("Step 2: Sending initial Git state report to HUB on startup")
     if not stop_event.is_set():
         await _send_git_state_report(connection, repo_path)
+    else:
+        logger.debug("Stop event is set, skipping Git state report")
 
+    logger.debug("Entering periodic Git state reporting loop with interval: %ss", repo_polling_interval_sec)
     while not stop_event.is_set():
         await _sleep_or_stop(repo_polling_interval_sec, stop_event)
         if not stop_event.is_set():
+            logger.debug("Periodic scan triggered, sending Git state report to HUB")
             await _send_git_state_report(connection, repo_path)
+        else:
+            logger.debug("Stop event is set, exiting periodic reporting loop")
 
 
 async def connect_and_run(
@@ -178,6 +234,10 @@ async def connect_and_run(
     over the WebSocket connection using the `client_git_state_report` envelope format
     with a configurable 10-second safety tick fallback (default 10 seconds).
     """
+    logger.debug("Initializing HUB WebSocket connection")
+    logger.debug("Connection parameters: url=%s, repo_path=%s, heartbeat_interval=%ss, repo_polling_interval=%ss",
+                 url, repo_path, heartbeat_interval, repo_polling_interval_sec)
+
     if stop_event is None:
         stop_event = asyncio.Event()
 
@@ -185,17 +245,35 @@ async def connect_and_run(
 
     while not stop_event.is_set():
         stop_requested = False
+        logger.debug("Attempting to connect to HUB WebSocket at: %s", url)
         try:
             # Pass token in query params as per backend convention: ?token=<jwt>
             ws_url = f"{url}?token={token}"
+            logger.debug("WebSocket URL with token: %s", ws_url[:50] + "...")  # Don't log the full token
             async with websockets.connect(ws_url) as connection:
+                logger.info("Successfully connected to HUB WebSocket")
                 backoff = _BASE_BACKOFF_SECONDS
-                async with asyncio.TaskGroup() as tg:
-                    tg.create_task(_send_heartbeats(connection, heartbeat_interval))
-                    tg.create_task(_receive_messages(connection))
-                    tg.create_task(_watch_stop(stop_event))
-                    tg.create_task(_sync_state_reporter(connection, stop_event, repo_path, repo_polling_interval_sec))
+
+                # Create tasks and await them together
+                tasks = [
+                    asyncio.create_task(_send_heartbeats(connection, heartbeat_interval)),
+                    asyncio.create_task(_receive_messages(connection)),
+                    asyncio.create_task(_watch_stop(stop_event)),
+                    asyncio.create_task(_sync_state_reporter(connection, stop_event, repo_path, repo_polling_interval_sec))
+                ]
+
+                logger.debug("All HUB communication tasks started successfully")
+                try:
+                    # Wait for all tasks to complete or for the stop event to be set
+                    await asyncio.gather(*tasks)
+                except ExceptionGroup as eg:
+                    # Handle task exceptions
+                    for exc in eg.exceptions:
+                        logger.debug("Task exception: %s", exc)
+                except Exception as e:
+                    logger.debug("Gather exception: %s", e)
         except _StopRequested:
+            logger.debug("Stop requested, exiting connection loop")
             stop_requested = True
         except ExceptionGroup as eg:
             fatal_reasons = [_fatal_reason(exc) for exc in eg.exceptions]
@@ -225,8 +303,11 @@ async def connect_and_run(
             logger.warning("WebSocket connection error: %s", exc)
 
         if stop_requested or stop_event.is_set():
+            logger.info("HUB connection loop terminated")
             return
 
+        logger.debug("WebSocket connection lost, preparing to reconnect with backoff: %s seconds", backoff)
         delay = random.uniform(0, backoff)
+        logger.debug("Waiting %s seconds before reconnect attempt...", delay)
         await _sleep_or_stop(delay, stop_event)
         backoff = min(backoff * _BACKOFF_FACTOR, _MAX_BACKOFF_SECONDS)

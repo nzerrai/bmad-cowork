@@ -4,7 +4,14 @@ Story 0.1 scope: boot-check only. No Git-scanning or WebSocket logic yet
 (that's Epic 2's Story 2.1/2.2). Starts, prints a status line, exits cleanly.
 """
 
+import logging
 import sys
+
+# Configure logging for debug output
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
 __version__ = "0.1.0"
 
