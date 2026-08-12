@@ -20,7 +20,7 @@ class ContributorGitState(Base):
     __tablename__ = "contributor_git_states"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(
+    user_id: Mapped[str] = mapped_column(
         String(36), unique=True, nullable=False, index=True
     )
     technical_identifier: Mapped[str] = mapped_column(
