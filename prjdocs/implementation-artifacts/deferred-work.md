@@ -145,3 +145,13 @@
 - source_spec: `spec-vscode-dashboard-activity-bar-icon.md`
   summary: `vscode-extension/README.md`'s "Status bar" section still claims the status bar item runs the (nonexistent) `bmadPortal.showDashboard` command, when `src/status-bar.ts` actually wires it to `bmad-portal.refreshDashboard`.
   evidence: Adversarial review flagged this while checking doc/code drift on the dashboard feature; pre-existing inaccuracy unrelated to the activity-bar icon wiring itself, left as-is to keep this change's diff scoped to the icon/view fix.
+
+## Deferred from: code review of spec-hub-login-redirect-to-dashboard (2026-08-12)
+
+- source_spec: `spec-hub-login-redirect-to-dashboard.md`
+  summary: `ihm/app/hub/dashboard/page.tsx` (`HubDashboardPage`) still renders 100% hardcoded `MOCK_BRANCH`/`MOCK_PRS` data instead of fetching real Git/PR state, so it now doubles as the first screen every user sees immediately after signing in.
+  evidence: Adversarial review flagged this; pre-existing gap from the dashboard's own build-out (not introduced by this redirect change), but making it the post-login landing page raises the visibility/urgency of wiring it to real data.
+
+- source_spec: `spec-hub-login-redirect-to-dashboard.md`
+  summary: `ihm/app/hub/layout.tsx` (`HubLayout`) never redirects to `/login` when no token is present — unlike `app/artifacts/page.tsx`'s explicit guard — so all `/hub/*` pages, including `/hub/dashboard`, are reachable without authentication.
+  evidence: Adversarial review flagged this; pre-existing gap across the whole `/hub` route group, not introduced by this change, but `/hub/dashboard` becoming the primary post-login destination makes the missing guard more consequential.

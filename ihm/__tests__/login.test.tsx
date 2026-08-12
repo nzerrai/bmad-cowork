@@ -1,7 +1,7 @@
 // Component test (Story 1.2 review follow-up): the smoke suite only proves
 // /login renders a <form> over HTTP — it never submits it. This drives the
 // real client component (jsdom + @testing-library/react) to prove the
-// success path actually persists the token and navigates to /artifacts.
+// success path actually persists the token and navigates to /hub/dashboard.
 //
 // jsdom globals are set up by `__tests__/jsdom-register.mjs`, loaded via
 // `--import` before this file (and before react-dom) — see that file for why
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { render, fireEvent, cleanup, waitFor } from "@testing-library/react";
 import React from "react";
 
-test("login: successful sign-in stores the token and redirects to /artifacts", async (t) => {
+test("login: successful sign-in stores the token and redirects to /hub/dashboard", async (t) => {
   localStorage.clear();
   t.after(() => cleanup());
   const pushCalls: string[] = [];
@@ -48,7 +48,7 @@ test("login: successful sign-in stores the token and redirects to /artifacts", a
   await waitFor(() => assert.equal(pushCalls.length, 1));
 
   assert.equal(localStorage.getItem("bmad_access_token"), "test-token-123");
-  assert.deepEqual(pushCalls, ["/artifacts"]);
+  assert.deepEqual(pushCalls, ["/hub/dashboard"]);
   assert.equal(fetchCalls.length, 1);
   assert.match(fetchCalls[0].url, /\/auth\/login$/);
   assert.deepEqual(fetchCalls[0].body, { email: "dev@example.com", password: "secret123" });

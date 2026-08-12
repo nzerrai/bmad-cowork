@@ -183,7 +183,7 @@ NEXT_PUBLIC_WS_BASE_URL="ws://localhost:8000/ws" npm run dev
 With the Backend running (`uv run uvicorn app.main:app --reload`), PostgreSQL up, artifacts indexed (`uv run python -m app.indexing.cli`, from `backend/`), and the IHM running (`npm run dev`, from `ihm/`):
 
 1. Open `http://localhost:3000/login` and sign in with a user registered via the [Auth walkthrough](#auth-walkthrough-curl) above (or the `curl`/`register` call directly).
-2. On success you're redirected to `http://localhost:3000/artifacts`, which calls `GET /artifacts/health` and renders two tables: a per-type completeness rollup (all 11 FR1 types, `complete`/`incomplete`/`missing`) and a per-artifact table (type, title, file path, sync status against disk, and outbound links — broken links render distinctly rather than being dropped).
+2. On success you're redirected to `http://localhost:3000/hub/dashboard`. Navigate to `http://localhost:3000/artifacts`, which calls `GET /artifacts/health` and renders two tables: a per-type completeness rollup (all 11 FR1 types, `complete`/`incomplete`/`missing`) and a per-artifact table (type, title, file path, sync status against disk, and outbound links — broken links render distinctly rather than being dropped).
 3. To see a `stale`/`deleted` sync status live: edit or delete an already-indexed file under `ARTIFACT_ROOT` without re-running the CLI scan, then reload `/artifacts`.
 
 ### Traceability Matrix walkthrough

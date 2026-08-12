@@ -31,7 +31,7 @@ export default function LoginPage() {
 
       const body = await response.json();
       setToken(body.access_token);
-      router.push("/artifacts");
+      router.push("/hub/dashboard");
     } catch {
       setError("Could not reach the Backend. Is it running?");
     } finally {
