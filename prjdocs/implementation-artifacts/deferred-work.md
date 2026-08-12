@@ -155,3 +155,21 @@
 - source_spec: `spec-hub-login-redirect-to-dashboard.md`
   summary: `ihm/app/hub/layout.tsx` (`HubLayout`) never redirects to `/login` when no token is present — unlike `app/artifacts/page.tsx`'s explicit guard — so all `/hub/*` pages, including `/hub/dashboard`, are reachable without authentication.
   evidence: Adversarial review flagged this; pre-existing gap across the whole `/hub` route group, not introduced by this change, but `/hub/dashboard` becoming the primary post-login destination makes the missing guard more consequential.
+
+## Deferred from: code review of spec-dashboard-user-scoped-repos-list (2026-08-12)
+
+- source_spec: `spec-dashboard-user-scoped-repos-list.md`
+  summary: `ContributorGitState` holds exactly one canonical row per user (unique on `user_id`, per AD-008), so on a now-multi-repo dashboard only one repo can ever show real branch/sync data at a time — every other repo the user has a legitimate local checkout of always shows "no local Git state reported."
+  evidence: Blind-hunter and verification-gap reviews both independently confirmed this is correct-by-design against the existing `ContributorGitState` model, not a bug in this diff; a real per-repo git-state model would require redesigning that table, well beyond this story's scope.
+
+- source_spec: `spec-dashboard-user-scoped-repos-list.md`
+  summary: `OverviewDashboard.tsx`'s `toBranchInfo` hardcodes `context: "remote"` for every repo, discarding `BranchPRStatus`'s documented Local vs Remote visual distinction (muted local vs. vibrant remote).
+  evidence: Adversarial review flagged this; carried over unchanged from the `MOCK_BRANCH` mock this story replaced (which already hardcoded `context: "remote"`) — the underlying data source has no concept of local-vs-remote branch state today.
+
+- source_spec: `spec-dashboard-user-scoped-repos-list.md`
+  summary: `SpaceMembership` rows are permanent with no revocation path (automatic or admin-driven) — a stale or mistaken identity report leaves that repo on a user's dashboard forever.
+  evidence: Adversarial review flagged the absence of any cleanup mechanism; explicitly out of scope for this revision (spec's "Never" boundary excludes a membership admin UI), but the underlying gap — no path to remove a membership at all, manual or automatic — should be tracked before it causes real confusion.
+
+- source_spec: `spec-dashboard-user-scoped-repos-list.md`
+  summary: `get_or_create_space` and `get_or_create_membership` each call `db.commit()` mid-flow on a session shared with the rest of `_process_client_identity`, forcing early commits that couple unrelated transaction boundaries in a single WebSocket message handler.
+  evidence: Adversarial review flagged this; `get_or_create_membership`'s commit mirrors a pre-existing pattern already present in `get_or_create_space` before this story, not a new risk introduced here — worth factoring into a shared upsert helper with a single transaction boundary later.

@@ -255,6 +255,118 @@ def test_client_identity_report_rejects_malicious_identifier(monkeypatch) -> Non
     mock_run.assert_not_called()
 
 
+def test_client_identity_report_no_membership_when_access_denied(monkeypatch) -> None:
+    """Authorization regression: a `client_identity_report` for a repo the
+    reporting user has no real access to (`check_repo_access` returns
+    False) must NOT create a `SpaceMembership` -- otherwise any
+    authenticated user could report an arbitrary existing repo's
+    `technical_identifier` and permanently gain visibility into it on
+    `GET /hub/dashboard/repos` (short_name, status, origin, has_credential),
+    without ever actually having access. The `Space` itself may still be
+    created/looked-up (unauthenticated discovery is unrelated to this
+    user's membership), but the membership join is gated on `has_access`."""
+    token, user_id = _register_and_login()
+    identifier = f"https://github.com/org/repo-{uuid.uuid4().hex}.git"
+
+    monkeypatch.setattr(router_module.hub_service, "check_repo_access", lambda db, ident: False)
+
+    with client.websocket_connect(f"/ws?token={token}") as ws:
+        ws.send_json({"type": "client_identity_report", "technical_identifier": identifier})
+        response = ws.receive_json()
+
+    assert response["type"] == "space_joined"
+    assert response["status"] == "pending"
+
+    from app.db import SessionLocal
+    from app.hub.models import Space, SpaceMembership
+
+    db = SessionLocal()
+    try:
+        space = db.query(Space).filter(Space.technical_identifier == identifier).first()
+        assert space is not None
+        membership = (
+            db.query(SpaceMembership)
+            .filter(
+                SpaceMembership.user_id == uuid.UUID(user_id),
+                SpaceMembership.space_id == space.id,
+            )
+            .first()
+        )
+        assert membership is None
+    finally:
+        db.close()
+
+
+def test_client_identity_report_creates_membership(monkeypatch) -> None:
+    """MEMBERSHIP_ON_IDENTITY matrix row (spec: dashboard-user-scoped-repos-list):
+    `_process_client_identity` establishes a `SpaceMembership(user_id,
+    space_id)` for the connected user, right after `get_or_create_space`
+    resolves the reported identity's `Space`."""
+    from app.db import SessionLocal
+    from app.hub.models import Space, SpaceMembership
+
+    token, user_id = _register_and_login()
+    identifier = f"https://github.com/org/repo-{uuid.uuid4().hex}.git"
+
+    monkeypatch.setattr(router_module.hub_service, "check_repo_access", lambda db, ident: True)
+
+    with client.websocket_connect(f"/ws?token={token}") as ws:
+        ws.send_json({"type": "client_identity_report", "technical_identifier": identifier})
+        ws.receive_json()
+
+    db = SessionLocal()
+    try:
+        space = db.query(Space).filter(Space.technical_identifier == identifier).first()
+        assert space is not None
+        membership = (
+            db.query(SpaceMembership)
+            .filter(
+                SpaceMembership.user_id == uuid.UUID(user_id),
+                SpaceMembership.space_id == space.id,
+            )
+            .first()
+        )
+        assert membership is not None
+    finally:
+        db.close()
+
+
+def test_client_identity_report_membership_is_idempotent(monkeypatch) -> None:
+    """A repeat identity report for the same (user, repo) pair must not
+    create a second `SpaceMembership` row -- the unique constraint plus
+    `get_or_create_membership`'s upsert keep this idempotent."""
+    from app.db import SessionLocal
+    from app.hub.models import Space, SpaceMembership
+
+    token, user_id = _register_and_login()
+    identifier = f"https://github.com/org/repo-{uuid.uuid4().hex}.git"
+
+    monkeypatch.setattr(router_module.hub_service, "check_repo_access", lambda db, ident: True)
+
+    with client.websocket_connect(f"/ws?token={token}") as ws:
+        ws.send_json({"type": "client_identity_report", "technical_identifier": identifier})
+        ws.receive_json()
+
+    with client.websocket_connect(f"/ws?token={token}") as ws:
+        ws.send_json({"type": "client_identity_report", "technical_identifier": identifier})
+        ws.receive_json()
+
+    db = SessionLocal()
+    try:
+        space = db.query(Space).filter(Space.technical_identifier == identifier).first()
+        memberships = (
+            db.query(SpaceMembership)
+            .filter(
+                SpaceMembership.user_id == uuid.UUID(user_id),
+                SpaceMembership.space_id == space.id,
+            )
+            .all()
+        )
+        assert len(memberships) == 1
+    finally:
+        db.close()
+
+
 def test_connection_manager_broadcast_skips_dead_connection() -> None:
     manager = ConnectionManager()
     user_id = uuid.uuid4()

@@ -1,7 +1,11 @@
 /** Overview Dashboard Component
  *
- * Main dashboard component showing global Git + BMAD state including branches,
- * PRs, sync status, and Local vs Remote context.
+ * Main dashboard component showing global Git + BMAD state across every
+ * repo the current user is scoped to see (admin = every known repo,
+ * everyone else = only the repos their Client has reported identity for --
+ * see `GET /hub/dashboard/repos`), including branches, sync status, and
+ * Local vs Remote context. PRs are always empty in this revision -- no
+ * backend PR integration exists, so none are fabricated.
  */
 
 "use client";
@@ -9,21 +13,79 @@
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { RealTimeStatusBar, StatusBarStatus } from "./RealTimeStatusBar";
-import { BranchPRStatus, BranchInfo, PRInfo } from "../git/BranchPRStatus";
+import { BranchPRStatus, BranchInfo } from "../git/BranchPRStatus";
 import { RealtimeConnection, ConnectionStatus } from "@/lib/websocket";
 
 export type DashboardHubStatus = "healthy" | "unreachable";
 
+/** A contributor's canonical Git state for one repo, as reported by
+ * `ContributorGitState` -- present only when it matches this repo's
+ * `technical_identifier`, never fabricated otherwise. */
+export interface DashboardRepoGitState {
+  technical_identifier: string;
+  branch: string | null;
+  ahead: number;
+  behind: number;
+  in_progress_action: string;
+  last_updated: string;
+  is_stale: boolean;
+  /** Only present when `is_stale` is true, e.g. `"Last known — 45s ago"`. */
+  status_message?: string;
+}
+
+/** One repo entry from `GET /hub/dashboard/repos` -- the base shape mirrors
+ * `_space_to_repo_out` (also used by `/hub/admin/repos`), plus the optional
+ * per-user `git_state` enrichment. */
+export interface DashboardRepo {
+  id: string;
+  technical_identifier: string;
+  short_name: string;
+  status: string;
+  origin: string;
+  has_credential: boolean;
+  created_at: string;
+  updated_at: string;
+  git_state: DashboardRepoGitState | null;
+}
+
 interface OverviewDashboardProps {
-  initialBranch?: BranchInfo | null;
-  initialPRs?: PRInfo[];
+  initialRepos?: DashboardRepo[];
   initialHubStatus?: DashboardHubStatus;
   initialLastKnownStateTimestamp?: string | null;
 }
 
+/** Derives a `BranchInfo` badge from a repo's `git_state` -- never
+ * fabricated: only called when `git_state` is present. When the state is
+ * stale (older than `STALENESS_THRESHOLD_SECONDS`, per AD-008), the
+ * rendered name surfaces that rather than rendering as if fresh -- using
+ * the backend's own `status_message` (e.g. "Last known — 45s ago") when
+ * present. */
+function toBranchInfo(gitState: DashboardRepoGitState): BranchInfo {
+  let status: BranchInfo["status"] = "up-to-date";
+  if (gitState.in_progress_action && gitState.in_progress_action !== "none") {
+    status = "conflict";
+  } else if (gitState.ahead > 0 && gitState.behind > 0) {
+    status = "conflict";
+  } else if (gitState.ahead > 0) {
+    status = "ahead";
+  } else if (gitState.behind > 0) {
+    status = "behind";
+  }
+
+  const branchName = gitState.branch ?? "(unknown)";
+  const name = gitState.is_stale
+    ? `${branchName} (${gitState.status_message ?? "stale"})`
+    : branchName;
+
+  return {
+    name,
+    context: "remote",
+    status,
+  };
+}
+
 export function OverviewDashboard({
-  initialBranch = null,
-  initialPRs = [],
+  initialRepos = [],
   initialHubStatus = "healthy",
   initialLastKnownStateTimestamp = null,
 }: OverviewDashboardProps) {
@@ -33,11 +95,23 @@ export function OverviewDashboard({
   const [wsConnectionStatus, setWsConnectionStatus] = useState<ConnectionStatus>(
     "closed",
   );
-  const [currentBranch] = useState<BranchInfo | null>(initialBranch);
-  const [openPRs] = useState<PRInfo[]>(initialPRs);
   const [lastKnownStateTimestamp, setLastKnownStateTimestamp] = useState<string | null>(
     initialLastKnownStateTimestamp,
   );
+
+  const repos = initialRepos;
+
+  // `initialRepos` now arrives asynchronously (fetched by the parent page,
+  // unlike the old static mock prop) -- the `RealtimeConnection` callback
+  // below is constructed once (guarded by `realtimeConnRef.current`) and
+  // must read the *current* repo list on every invocation, not the one
+  // closed over at that first construction (which is often still `[]` at
+  // that point). Track it in a ref, updated every render, instead of
+  // closing over the `repos` variable/prop directly.
+  const reposRef = useRef<DashboardRepo[]>(repos);
+  useEffect(() => {
+    reposRef.current = repos;
+  }, [repos]);
 
   const realtimeConnRef = useRef<RealtimeConnection | null>(null);
 
@@ -50,13 +124,13 @@ export function OverviewDashboard({
           setLastKnownStateTimestamp(null);
         } else if (status === "closed" && hubStatus === "healthy") {
           // Transition to stale state if connection closes
-          if (currentBranch || openPRs.length > 0) {
+          if (reposRef.current.length > 0) {
             setLastKnownStateTimestamp(new Date().toLocaleString());
           }
         }
       });
     }
-  }, [hubStatus, currentBranch, openPRs]);
+  }, [hubStatus]);
 
   useEffect(() => {
     const conn = realtimeConnRef.current;
@@ -86,7 +160,7 @@ export function OverviewDashboard({
   };
 
   // Check if there are no repositories connected
-  const hasNoRepositories = !currentBranch && openPRs.length === 0;
+  const hasNoRepositories = repos.length === 0;
 
   if (hasNoRepositories) {
     return (
@@ -122,11 +196,20 @@ export function OverviewDashboard({
           </p>
         </div>
 
-        <section className="flex flex-col gap-3">
+        <section className="flex flex-col gap-6">
           <h2 className="text-xs font-bold tracking-wider text-text-secondary uppercase">
             Git + BMAD State
           </h2>
-          <BranchPRStatus currentBranch={currentBranch} openPRs={openPRs} />
+          {repos.map((repo) => (
+            <div key={repo.id} className="flex flex-col gap-2">
+              <h3 className="text-sm font-semibold text-foreground">{repo.short_name}</h3>
+              {repo.git_state ? (
+                <BranchPRStatus currentBranch={toBranchInfo(repo.git_state)} openPRs={[]} />
+              ) : (
+                <p className="text-sm text-text-secondary">No local Git state reported</p>
+              )}
+            </div>
+          ))}
         </section>
       </main>
     </div>

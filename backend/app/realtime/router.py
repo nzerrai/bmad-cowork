@@ -90,10 +90,23 @@ def _process_client_identity(technical_identifier: str, user_id: uuid.UUID):
 
         # Check repo access to determine if status should be updated
         has_access = hub_service.check_repo_access(db, technical_identifier)
-        if has_access and space.status == HubStatus.PENDING:
-            space.status = HubStatus.ACTIVE
-            db.commit()
-            db.refresh(space)
+        if has_access:
+            # Establish this user's membership in the space (spec:
+            # dashboard-user-scoped-repos-list) -- the only place a
+            # `SpaceMembership` is ever created; idempotent, so a repeat
+            # identity report for the same (user, space) pair is a no-op.
+            # Gated on `has_access`, not just on reporting an identifier
+            # that happens to match an existing `Space`: without this gate,
+            # any authenticated user could report a `technical_identifier`
+            # they have no real access to and permanently gain visibility
+            # into that repo on `GET /hub/dashboard/repos` (short_name,
+            # status, origin, has_credential).
+            hub_service.get_or_create_membership(db, user_id, space.id)
+
+            if space.status == HubStatus.PENDING:
+                space.status = HubStatus.ACTIVE
+                db.commit()
+                db.refresh(space)
 
         # Prepare result
         result = {

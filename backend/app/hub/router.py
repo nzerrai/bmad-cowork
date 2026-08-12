@@ -13,7 +13,7 @@ from app.db import SessionLocal
 from app.hub import service as hub_service
 from app.hub.credentials import encrypt_credential
 from app.hub.git_state_service import get_contributor_git_state
-from app.hub.models import HubStatus, Space
+from app.hub.models import HubStatus, Space, SpaceMembership
 from app.hub.quality_gates_schemas import QualityGatesVerificationOut
 from app.hub.quality_gates_service import verify_quality_gates
 from app.indexing.models import Artifact
@@ -229,6 +229,54 @@ async def set_admin_repo_credential(
     db.refresh(space)
 
     return _space_to_repo_out(space)
+
+
+# Dashboard repos list endpoint (spec: dashboard-user-scoped-repos-list)
+
+@router.get("/hub/dashboard/repos")
+def list_dashboard_repos(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    """List the repos to show on `/hub/dashboard`'s Overview, scoped by role.
+
+    Admin sees every known `Space` (same universe as `/hub/admin/repos`).
+    Every other role sees only the `Space`s they have a `SpaceMembership`
+    for -- established automatically when their Client reports identity for
+    a repo (`_process_client_identity`), never via a manual action in this
+    revision's scope.
+
+    Reuses `_space_to_repo_out` for each repo's base shape, then enriches it
+    with a `git_state` sub-object sourced from the current user's
+    `ContributorGitState` when its `technical_identifier` matches this repo
+    -- `None` otherwise (never fabricated). PRs are out of scope for this
+    revision (no backend PR integration exists) so no `prs` field is added
+    here, consistent with `get_dashboard_data`'s empty `claims`/`riskSignals`
+    convention.
+    """
+    if user.role == Role.ADMIN:
+        spaces = db.query(Space).order_by(Space.created_at).all()
+    else:
+        spaces = (
+            db.query(Space)
+            .join(SpaceMembership, SpaceMembership.space_id == Space.id)
+            .filter(SpaceMembership.user_id == user.id)
+            .order_by(Space.created_at)
+            .all()
+        )
+
+    git_state = get_contributor_git_state(db, user.id)
+
+    repos = []
+    for space in spaces:
+        repo = _space_to_repo_out(space)
+        if git_state is not None and git_state["technical_identifier"] == space.technical_identifier:
+            repo["git_state"] = git_state
+        else:
+            repo["git_state"] = None
+        repos.append(repo)
+
+    return {"repos": repos}
 
 
 # Git State Report HTTP Endpoint (VS Code Extension)

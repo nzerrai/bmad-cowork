@@ -1,57 +1,74 @@
 "use client";
 
-import { OverviewDashboard } from "@/app/components/dashboard/OverviewDashboard";
-
-type BranchStatusType = "up-to-date" | "ahead" | "behind" | "conflict";
-
-interface BranchInfo {
-  name: string;
-  context: "local" | "remote";
-  status: BranchStatusType;
-}
-
-interface PRInfo {
-  number: number;
-  title: string;
-  status: "open" | "review" | "merged" | "closed";
-  context: "local" | "remote";
-  updatedAt: string;
-}
-
-// Mock data for demonstration
-const MOCK_BRANCH: BranchInfo = {
-  name: "main",
-  context: "remote",
-  status: "up-to-date",
-};
-
-const MOCK_PRS: PRInfo[] = [
-  {
-    number: 142,
-    title: "feat: implement dashboard overview health view",
-    status: "review",
-    context: "remote",
-    updatedAt: "2026-08-10 14:30",
-  },
-  {
-    number: 141,
-    title: "feat: add real-time status bar component",
-    status: "open",
-    context: "remote",
-    updatedAt: "2026-08-10 12:15",
-  },
-];
+import { useEffect, useState } from "react";
+import { OverviewDashboard, DashboardRepo } from "@/app/components/dashboard/OverviewDashboard";
+import { authFetch } from "@/lib/auth";
 
 export default function HubDashboardPage() {
-  const hubStatus: "healthy" | "unreachable" = "healthy";
-  const lastKnownStateTimestamp: string | null = null;
+  const [repos, setRepos] = useState<DashboardRepo[]>([]);
+  // Distinct from "confirmed empty" (`repos.length === 0` after the fetch
+  // settles) -- without this, a user with many repos would flash the
+  // "No repositories connected yet" onboarding message on every load, and a
+  // failed/401 fetch would be indistinguishable from a genuine empty state.
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  return (
-    <OverviewDashboard
-      initialBranch={MOCK_BRANCH}
-      initialPRs={MOCK_PRS}
-      initialHubStatus={hubStatus}
-      initialLastKnownStateTimestamp={lastKnownStateTimestamp}
-    />
-  );
+  useEffect(() => {
+    let cancelled = false;
+
+    authFetch("/hub/dashboard/repos")
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(
+            res.status === 401
+              ? "Your session has expired. Please sign in again."
+              : "Unable to load your repositories right now.",
+          );
+        }
+        return res.json();
+      })
+      .then((data: { repos?: DashboardRepo[] }) => {
+        if (!cancelled) {
+          // Guard against a malformed response shape crashing
+          // `OverviewDashboard`'s `.map()` over repos.
+          setRepos(Array.isArray(data.repos) ? data.repos : []);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err.message : "Unable to load your repositories right now.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center gap-4 px-6 py-10">
+        <p className="text-sm text-text-secondary">Loading your repositories...</p>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-6 py-10">
+        <div className="rounded-md border border-error bg-surface px-4 py-3 text-sm text-error">
+          {error}
+        </div>
+      </main>
+    );
+  }
+
+  return <OverviewDashboard initialRepos={repos} />;
 }

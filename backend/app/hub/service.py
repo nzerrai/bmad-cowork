@@ -5,6 +5,7 @@ import re
 import stat
 import subprocess
 import tempfile
+import uuid
 from urllib.parse import urlparse
 
 from sqlalchemy.dialects.postgresql import insert
@@ -12,7 +13,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.hub.credentials import InvalidToken, decrypt_credential
-from app.hub.models import HubStatus, Space
+from app.hub.models import HubStatus, Space, SpaceMembership
 
 # `git ls-remote` timeout, per Design Notes ("a few-second timeout") -- long
 # enough for a real remote round-trip, short enough not to stall the
@@ -226,6 +227,71 @@ def get_or_create_space(
         db.refresh(space)
 
     return space
+
+
+def get_or_create_membership(
+    db: Session, user_id: uuid.UUID, space_id: uuid.UUID
+) -> SpaceMembership:
+    """Idempotent user<->space membership upsert.
+
+    Called from `_process_client_identity` right after `get_or_create_space`
+    resolves the `Space` for a Client's reported identity -- this is the
+    only place a `SpaceMembership` is ever created (spec's "Always"
+    boundary: never via a manual admin action in this revision's scope).
+
+    Same atomic-upsert shape as `get_or_create_space`: PostgreSQL's
+    `INSERT ... ON CONFLICT DO NOTHING` on the `(user_id, space_id)` unique
+    constraint, so concurrent identity reports for the same user/repo pair
+    resolve to exactly one membership row, never a race or a duplicate.
+    """
+    existing = (
+        db.query(SpaceMembership)
+        .filter(SpaceMembership.user_id == user_id, SpaceMembership.space_id == space_id)
+        .first()
+    )
+    if existing:
+        return existing
+
+    stmt = insert(SpaceMembership).values(user_id=user_id, space_id=space_id)
+    stmt = stmt.on_conflict_do_nothing(
+        index_elements=["user_id", "space_id"]
+    )
+    db.execute(stmt)
+    db.commit()
+
+    membership = (
+        db.query(SpaceMembership)
+        .filter(SpaceMembership.user_id == user_id, SpaceMembership.space_id == space_id)
+        .first()
+    )
+
+    if membership is None:
+        # Fallback: create new membership if not found after upsert. Under a
+        # genuine race (another request's upsert commits between our SELECT
+        # above and this INSERT), the unique constraint on (user_id,
+        # space_id) makes this raise `IntegrityError` rather than silently
+        # succeed -- caught here and resolved to the row the other
+        # transaction just created, instead of propagating up through
+        # `_process_client_identity` and crashing the WebSocket message
+        # handler (only a `WebSocketDisconnect`-only except guards that
+        # call site).
+        try:
+            membership = SpaceMembership(user_id=user_id, space_id=space_id)
+            db.add(membership)
+            db.commit()
+            db.refresh(membership)
+        except IntegrityError:
+            db.rollback()
+            membership = (
+                db.query(SpaceMembership)
+                .filter(
+                    SpaceMembership.user_id == user_id,
+                    SpaceMembership.space_id == space_id,
+                )
+                .first()
+            )
+
+    return membership
 
 
 def determine_space_status(db: Session, technical_identifier: str, current_status: HubStatus | None = None) -> HubStatus:

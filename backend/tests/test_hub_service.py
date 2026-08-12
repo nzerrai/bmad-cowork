@@ -11,7 +11,10 @@ spec's I/O matrix.
 import os
 import subprocess
 import tempfile
+import uuid
 from unittest.mock import MagicMock, patch
+
+from sqlalchemy.exc import IntegrityError
 
 from app.hub.credentials import encrypt_credential
 from app.hub.service import (
@@ -19,6 +22,7 @@ from app.hub.service import (
     check_repo_access,
     detect_git_provider,
     generate_access_grant_link,
+    get_or_create_membership,
     get_or_create_space,
     is_valid_technical_identifier,
 )
@@ -379,3 +383,52 @@ class TestGetOrCreateSpaceOrigin:
 
         assert result is existing
         db.commit.assert_not_called()
+
+
+class TestGetOrCreateMembership:
+    """Unit tests for `get_or_create_membership`'s upsert + race-safe fallback."""
+
+    def test_existing_membership_returned_without_reinsert(self):
+        existing = MagicMock()
+        db = MagicMock()
+        db.query.return_value.filter.return_value.first.return_value = existing
+
+        result = get_or_create_membership(db, uuid.uuid4(), uuid.uuid4())
+
+        assert result is existing
+        db.commit.assert_not_called()
+
+    def test_race_on_fallback_insert_resolves_to_the_concurrently_created_row(self):
+        """Reviewer finding (P2): if two requests race past the initial
+        SELECT and both find nothing after the `ON CONFLICT DO NOTHING`
+        upsert, the fallback `db.add`/`db.commit()` for the loser must not
+        raise an unhandled `IntegrityError` -- it should roll back and
+        resolve to the row the winner just committed, same as the winner
+        would see."""
+        winner_row = MagicMock()
+
+        class _FakeInsertResult:
+            def on_conflict_do_nothing(self, index_elements):
+                return self
+
+        db = MagicMock()
+        # 1) initial existing-membership check -> None
+        # 2) post-upsert re-query -> still None (this request's own upsert
+        #    didn't hit the row -- the other transaction's insert wins)
+        # 3) post-rollback re-query in the except branch -> the winner's row
+        db.query.return_value.filter.return_value.first.side_effect = [
+            None,
+            None,
+            winner_row,
+        ]
+        # 1) commit after the upsert `INSERT ... ON CONFLICT DO NOTHING` -> fine
+        # 2) commit for this request's own fallback INSERT -> the race:
+        #    the other transaction's row now violates our unique constraint
+        db.commit.side_effect = [None, IntegrityError("INSERT", {}, Exception("duplicate key"))]
+
+        with patch("app.hub.service.insert") as mock_insert:
+            mock_insert.return_value.values.return_value = _FakeInsertResult()
+            result = get_or_create_membership(db, uuid.uuid4(), uuid.uuid4())
+
+        assert result is winner_row
+        db.rollback.assert_called_once()
