@@ -46,12 +46,12 @@ This story (7.1) scaffolds the extension's contribution points and a minimal `ac
 
 | Command ID | Title | Status |
 |---|---|---|
-| `bmadPortal.showDashboard` | BMad Portal: Show Dashboard | Opens the sidebar dashboard view container |
+| `bmad-portal.openDashboard` | BMad Portal: Open Dashboard | Opens the sidebar dashboard view container |
 | `bmadPortal.showSuggestedFeatures` | BMad Portal: Show Suggested Features | Placeholder — real claims/role-based suggestions ship in Story 7.7 |
 
 ## Views
 
-A dedicated **BMad Portal** activity-bar container hosts a **Dashboard** webview view (`bmadPortal.dashboardView`). It currently renders a placeholder message; the navigation arborescence (Dashboard Overview, My Claims, Risk Signals, Sprint Status) and live widgets land in Stories 7.5/7.6.
+A dedicated **BMad Portal** activity-bar container hosts a **Dashboard** webview view (`bmadPortal.dashboard`). It currently renders a placeholder message; the navigation arborescence (Dashboard Overview, My Claims, Risk Signals, Sprint Status) and live widgets land in Stories 7.5/7.6.
 
 ## Status bar
 

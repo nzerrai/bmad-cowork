@@ -82,9 +82,12 @@ export async function activate(context: vscode.ExtensionContext) {
 	const openDashboardCommand = vscode.commands.registerCommand(
 		'bmad-portal.openDashboard',
 		async () => {
-			vscode.window.showInformationMessage('BMad Portal: Dashboard is available in the sidebar. Please look for "Dashboard View" or "BMad Portal Dashboard" in the sidebar.');
-			// Ensure sidebar is visible
-			await vscode.commands.executeCommand('workbench.action.toggleSidebarVisibility');
+			// Reveal the BMad Portal activity bar container and focus the dashboard view
+			try {
+				await vscode.commands.executeCommand(`${DashboardWebviewViewProvider.viewType}.focus`);
+			} catch {
+				vscode.window.showInformationMessage('BMad Portal: Dashboard is available in the sidebar. Please look for "BMad Portal" in the activity bar.');
+			}
 		}
 	);
 

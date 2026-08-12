@@ -109,13 +109,23 @@
       "alignment": "right",
       "priority": 100
     },
-    "webviewViews": {
-      "bmadPortal.dashboard": {
-        "type": "webview",
-        "view": "bmadPortalDashboard",
-        "name": "Dashboard View",
-        "icon": "$(dashboard)"
-      }
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "bmadPortal",
+          "title": "BMad Portal",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "bmadPortal": [
+        {
+          "id": "bmadPortal.dashboard",
+          "name": "Dashboard",
+          "type": "webview"
+        }
+      ]
     }
   },
   "scripts": {

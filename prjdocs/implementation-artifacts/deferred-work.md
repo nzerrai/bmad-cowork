@@ -127,3 +127,21 @@
 - source_spec: `spec-6-1-git-repos-project-configuration-2.md`
   summary: The new Alembic migration (`0a2ae1447e3a_add_space_origin_and_credential`) drops `git_repos_config` outright with no data-preservation path, and its `downgrade()` recreates an empty table rather than restoring data — acceptable now since no deployed environment holds real config data yet, but the pattern (destructive migration, non-functional downgrade) shouldn't repeat once this system has real users.
   evidence: Blind-hunter review flagged both the silent data loss and the cosmetic-only downgrade; confirmed by reading the migration file. No production/staging environment exists yet for this pre-launch project, so actual data loss risk today is zero, but the convention is worth tightening before the next destructive migration on a live system.
+
+## Deferred from: code review of spec-vscode-dashboard-activity-bar-icon (2026-08-12)
+
+- source_spec: `spec-vscode-dashboard-activity-bar-icon.md`
+  summary: No automated test asserts that `bmadPortal.dashboard`'s view id in `vscode-extension/package.json` stays in sync with `DashboardWebviewViewProvider.viewType`, or that the `bmad-portal.openDashboard` command successfully focuses the view.
+  evidence: Adversarial review flagged the gap; a future rename of either the view id or the provider's `viewType` constant would only surface at runtime, with no CI signal.
+
+- source_spec: `spec-vscode-dashboard-activity-bar-icon.md`
+  summary: Neither the `bmadPortal` activity-bar container nor the `bmadPortal.dashboard` view has a `when` clause, so the dashboard icon and view are always shown regardless of the `bmadPortal.connected` context key already toggled elsewhere in `extension.ts` (disconnect/reconnect commands).
+  evidence: Adversarial review flagged this; pre-existing connection-state plumbing (the context key) was never wired to view visibility, and this change makes the always-visible icon more prominent than the previous vague "look in the sidebar" message.
+
+- source_spec: `spec-vscode-dashboard-activity-bar-icon.md`
+  summary: `vscode-extension/media/icon.svg`'s glyph runs nearly edge-to-edge in its 24x24 viewBox, leaving little of the padding VS Code's activity-bar icon guidelines recommend, so it may render visually heavier than sibling codicons once actually shown in the activity bar.
+  evidence: Adversarial review flagged the tight bounding box (coordinates ~1.5-22.5 on both axes); pre-existing asset, now actually rendered for the first time by this change since it was previously unwired.
+
+- source_spec: `spec-vscode-dashboard-activity-bar-icon.md`
+  summary: `vscode-extension/README.md`'s "Status bar" section still claims the status bar item runs the (nonexistent) `bmadPortal.showDashboard` command, when `src/status-bar.ts` actually wires it to `bmad-portal.refreshDashboard`.
+  evidence: Adversarial review flagged this while checking doc/code drift on the dashboard feature; pre-existing inaccuracy unrelated to the activity-bar icon wiring itself, left as-is to keep this change's diff scoped to the icon/view fix.
