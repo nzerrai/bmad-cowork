@@ -47,15 +47,18 @@ export class GitPoller {
 	}
 
 	public start(): void {
+		vscode.window.showInformationMessage(`BMad Portal: Starting Git poller with interval: ${this.pollingIntervalSec} seconds.`);
 		if (this.pollTimer) {
 			clearInterval(this.pollTimer);
 		}
 
 		// Initial poll
+		vscode.window.showInformationMessage('BMad Portal: Performing initial Git state poll...');
 		this.pollGitState();
 
 		// Setup scheduled polling
 		this.pollTimer = setInterval(() => {
+			vscode.window.showInformationMessage('BMad Portal: Scheduled Git state poll triggered...');
 			this.pollGitState();
 		}, this.pollingIntervalSec * 1000);
 	}
@@ -73,11 +76,14 @@ export class GitPoller {
 
 	private async pollGitState(forceUpload: boolean = false): Promise<void> {
 		try {
+			vscode.window.showInformationMessage('BMad Portal: Detecting local Git state...');
 			const state = await this.detectGitState();
+			vscode.window.showInformationMessage(`BMad Portal: Git state detected - Is Git Repo: ${state.isGitRepo}. Ahead: ${state.aheadCount}. Behind: ${state.behindCount}. Sync State: ${state.syncState}`);
 			this.notifyStateChange(state);
 
 			// If this is a force upload (from event override), notify the state reporter
 			if (forceUpload) {
+				vscode.window.showInformationMessage('BMad Portal: Force upload triggered from Git event override.');
 				// The state reporter integration is handled in extension.ts
 			}
 		} catch (error) {
@@ -88,7 +94,7 @@ export class GitPoller {
 	private async handleGitEvent(event: GitEventData): Promise<void> {
 		// Trigger an immediate state upload (event-driven override)
 		// This does not disrupt the scheduled poll timer
-		vscode.window.showInformationMessage(`BMad Portal: Git event detected (${event.eventType}), triggering immediate state upload`);
+		vscode.window.showInformationMessage(`BMad Portal: Git event detected (${event.eventType}), triggering immediate state upload (event-driven polling)...`);
 
 		// Force poll and upload state
 		await this.pollGitState(true);

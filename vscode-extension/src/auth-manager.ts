@@ -23,10 +23,32 @@ export class AuthManager {
 	}
 
 	/**
+	 * Get JWT token from workspace settings or SecretStorage
+	 * @returns The JWT token, or undefined if not found
+	 */
+	private async getJwtTokenFromSettingsOrStorage(): Promise<string | undefined> {
+		// First, check workspace settings for a direct JWT token
+		const settingsToken = vscode.workspace.getConfiguration('bmadPortal').get<string>('jwtToken');
+		if (settingsToken && settingsToken !== '') {
+			console.log('Using JWT token from workspace settings');
+			return settingsToken;
+		}
+
+		// Fall back to SecretStorage
+		const storageToken = await this.jwtStorage.getJwtToken();
+		if (storageToken && storageToken !== '') {
+			console.log('Using JWT token from SecretStorage');
+			return storageToken;
+		}
+
+		return undefined;
+	}
+
+	/**
 	 * Initialize the authentication manager
 	 */
 	public async initialize(): Promise<void> {
-		const token = await this.jwtStorage.getJwtToken();
+		const token = await this.getJwtTokenFromSettingsOrStorage();
 		if (token && token !== '') {
 			this.authToken = token;
 			this.isAuthenticated = true;

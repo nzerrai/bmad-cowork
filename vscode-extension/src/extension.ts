@@ -25,31 +25,45 @@ export let claimNotifications: ClaimNotifications | undefined;
 export let featuresSuggester: FeaturesSuggester | undefined;
 
 export async function activate(context: vscode.ExtensionContext) {
+	vscode.window.showInformationMessage('BMad Portal: Starting extension activation...');
+
 	// Initialize JWT storage and authentication manager first
+	vscode.window.showInformationMessage('BMad Portal: Initializing JWT storage and authentication manager...');
 	jwtStorage = new JwtStorageManager(context);
 	authManager = new AuthManager(context);
 
 	// Initialize the authentication manager
+	vscode.window.showInformationMessage('BMad Portal: Initializing authentication manager...');
 	await authManager.initialize();
 
+	// Check if authenticated and show status
+	const isAuthenticated = authManager ? authManager.isAuthenticatedState() : false;
+	const authStatus = isAuthenticated ? 'authenticated (using workspace JWT token or SecretStorage)' : 'not authenticated';
+	vscode.window.showInformationMessage(`BMad Portal: Authentication status: ${authStatus}`);
+
 	// Initialize state reporter and git poller
+	vscode.window.showInformationMessage('BMad Portal: Initializing state reporter and Git poller...');
 	stateReporter = new StateReporter(context);
 	gitPoller = new GitPoller(context);
 
 	// Initialize and register webview provider
+	vscode.window.showInformationMessage('BMad Portal: Registering dashboard webview provider...');
 	dashboardWebviewProvider = new DashboardWebviewViewProvider(context, authManager, jwtStorage);
 	context.subscriptions.push(
 		vscode.window.registerWebviewViewProvider(DashboardWebviewViewProvider.viewType, dashboardWebviewProvider)
 	);
 
 	// Initialize Status Bar widget
+	vscode.window.showInformationMessage('BMad Portal: Initializing status bar widget...');
 	statusBarWidget = new StatusBarWidget();
 
 	// Initialize claim notifications
 	const enableNotifications = vscode.workspace.getConfiguration('bmadPortal').get<boolean>('enableNotifications', true);
 	claimNotifications = new ClaimNotifications(enableNotifications);
+	vscode.window.showInformationMessage(`BMad Portal: Claim notifications enabled: ${enableNotifications}`);
 
 	// Initialize features suggester
+	vscode.window.showInformationMessage('BMad Portal: Initializing features suggester...');
 	featuresSuggester = new FeaturesSuggester(context);
 
 	// Register commands
@@ -68,7 +82,9 @@ export async function activate(context: vscode.ExtensionContext) {
 	const openDashboardCommand = vscode.commands.registerCommand(
 		'bmad-portal.openDashboard',
 		async () => {
-			vscode.window.showInformationMessage('BMad Portal: Opening dashboard');
+			vscode.window.showInformationMessage('BMad Portal: Dashboard is available in the sidebar. Please look for "Dashboard View" or "BMad Portal Dashboard" in the sidebar.');
+			// Ensure sidebar is visible
+			await vscode.commands.executeCommand('workbench.action.toggleSidebarVisibility');
 		}
 	);
 
@@ -129,28 +145,31 @@ export async function activate(context: vscode.ExtensionContext) {
 	);
 
 	// Initialize extension state
-	const backendHubUrl = vscode.workspace.getConfiguration('bmadPortal').get<string>('backendHubUrl', 'http://localhost:3000');
-	const authMethod = vscode.workspace.getConfiguration('bmadPortal').get<string>('authMethod', 'session');
-	const dashboardDisplayMode = vscode.workspace.getConfiguration('bmadPortal').get<string>('dashboardDisplayMode', 'sidebar');
+	const backendHubUrl = vscode.workspace.getConfiguration('bmadPortal').get<string>('backendHubUrl', 'http://localhost:8000');
+	const authMethod = vscode.workspace.getConfiguration('bmadPortal').get<string>('authMethod', 'jwt');
+	const dashboardDisplayMode = vscode.workspace.getConfiguration('bmadPortal').get<string>('dashboardDisplayMode', 'sidebarView');
 
-	// Check if authenticated
-	const isAuthenticated = authManager ? authManager.isAuthenticatedState() : false;
-	const authStatus = isAuthenticated ? 'authenticated' : 'not authenticated';
-
-	vscode.window.showInformationMessage(`BMad Portal Hub extension activated. Backend: ${backendHubUrl}. Auth: ${authStatus}`);
+	vscode.window.showInformationMessage(`BMad Portal Hub extension activated. Backend: ${backendHubUrl}. Auth Method: ${authMethod}. Dashboard Mode: ${dashboardDisplayMode}`);
 
 	// Set initial connected state
 	vscode.commands.executeCommand('setContext', 'bmadPortal.connected', true);
+	vscode.window.showInformationMessage('BMad Portal: Set connected state to true.');
 
 	// Start the Git polling engine
+	vscode.window.showInformationMessage('BMad Portal: Starting Git polling engine...');
 	if (gitPoller) {
 		gitPoller.start();
+		vscode.window.showInformationMessage('BMad Portal: Git polling engine started. Interval: 300 seconds.');
 
 		// Listen for state changes and report to backend
 		gitPoller.onStateChange(async (state: GitState) => {
+			vscode.window.showInformationMessage(`BMad Portal: Git state change detected. Repo: ${state.isGitRepo ? 'Git repository' : 'Not a Git repo'}. Sync state: ${state.syncState}`);
+
 			if (stateReporter) {
 				try {
+					vscode.window.showInformationMessage('BMad Portal: Attempting to report Git state to backend...');
 					await stateReporter.reportGitState(state);
+					vscode.window.showInformationMessage('BMad Portal: Git state report completed (HTTP reporting disabled, using WebSocket placeholder).');
 				} catch (error) {
 					// Handle authentication errors specifically
 					if (error instanceof Error && error.message.includes('Authentication required: session expired')) {
@@ -163,7 +182,8 @@ export async function activate(context: vscode.ExtensionContext) {
 							claimNotifications.showExpirationEvent('Unknown', 'now');
 						}
 					} else {
-						console.error('State report failed:', error);
+						vscode.window.showWarningMessage(`BMad Portal: State report warning: ${error}`);
+						console.debug('State report failed:', error);
 					}
 				}
 			}
@@ -178,6 +198,7 @@ export async function activate(context: vscode.ExtensionContext) {
 					username: 'user'
 				};
 				statusBarWidget.update(statusConfig);
+				vscode.window.showInformationMessage(`BMad Portal: Status bar updated. Sync state: ${syncState}.`);
 			}
 		});
 	}

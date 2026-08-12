@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide d'Utilisation - Client Python bmad-portal</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #1e40af;
+            --background-color: #f8fafc;
+            --text-color: #1e293b;
+            --code-background: #f1f5f9;
+            --border-color: #e2e8f0;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --error-color: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--background-color);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 3rem 0;
+            margin-bottom: 2rem;
+            border-radius: 0 0 1rem 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            color: var(--primary-color);
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--secondary-color);
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: white;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover {
+            background-color: var(--code-background);
+        }
+
+        pre {
+            background-color: var(--code-background);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+
+        code {
+            font-family: 'Fira Code', 'SF Mono', 'Consolas', monospace;
+            font-size: 0.9em;
+        }
+
+        p code {
+            background-color: var(--code-background);
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+        }
+
+        .note {
+            background-color: #fef3c7;
+            border-left: 4px solid var(--warning-color);
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 0 0.5rem 0.5rem 0;
+        }
+
+        .note-title {
+            font-weight: 600;
+            color: #92400e;
+            margin-bottom: 0.5rem;
+        }
+
+        .success-box {
+            background-color: #d1fae5;
+            border-left: 4px solid var(--success-color);
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 0 0.5rem 0.5rem 0;
+        }
+
+        .error-box {
+            background-color: #fee2e2;
+            border-left: 4px solid var(--error-color);
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 0 0.5rem 0.5rem 0;
+        }
+
+        .mermaid {
+            background-color: white;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            overflow-x: auto;
+        }
+
+        ul, ol {
+            margin: 1rem 0;
+            padding-left: 2rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem 0;
+            margin-top: 3rem;
+            border-top: 1px solid var(--border-color);
+            color: #64748b;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            h2 {
+                font-size: 1.5rem;
+            }
+
+            table {
+                font-size: 0.9rem;
+            }
+
+            th, td {
+                padding: 0.75rem 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Guide d'Utilisation - Client Python bmad-portal</h1>
+            <p>Documentation complète du client agent Python</p>
+        </div>
+    </header>
+
+    <div class="container">
+        <h2>Vue d'Ensemble</h2>
+        <p>Le client Python de bmad-portal est un agent CLI conçu pour se connecter au backend bmad-portal via WebSocket et rapporter l'état local du dépôt Git, ainsi que pour envoyer des heartbeats (signaux de présence) réguliers.</p>
+
+        <h3>Informations du Projet</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Champ</th>
+                    <th>Valeur</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Nom du projet</strong></td>
+                    <td>client (bmad-portal client agent)</td>
+                </tr>
+                <tr>
+                    <td><strong>Version</strong></td>
+                    <td>0.1.0</td>
+                </tr>
+                <tr>
+                    <td><strong>Version Python requise</strong></td>
+                    <td>&gt;=3.13,&lt;3.14</td>
+                </tr>
+                <tr>
+                    <td><strong>Dépendance principale</strong></td>
+                    <td><code>websockets&gt;=17,&lt;18</code></td>
+                </tr>
+                <tr>
+                    <td><strong>Outils de dev</strong></td>
+                    <td><code>pytest&gt;=9.1.1</code>, <code>ruff&gt;=0.16.1</code></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>Installation</h2>
+
+        <h3>Prérequis</h3>
+        <ol>
+            <li><strong>Python 3.13</strong> ou supérieur (mais &lt; 3.14)</li>
+            <li><strong>uv</strong> ou <strong>pip</strong> pour la gestion des paquets</li>
+            <li>Un environnement virtuel Python activé</li>
+        </ol>
+
+        <h3>Configuration de l'environnement</h3>
+        <ol>
+            <li>Clonez le dépôt du client :
+                <pre><code class="language-bash">cd client</code></pre>
+            </li>
+            <li>Créez et activez un environnement virtuel (si ce n'est pas déjà fait) :
+                <pre><code class="language-bash">python3 -m venv .venv
+source .venv/bin/activate</code></pre>
+            </li>
+            <li>Installez les dépendances :
+                <pre><code class="language-bash"># Si vous utilisez uv
+uv sync
+
+# Ou avec pip
+pip install -e .</code></pre>
+            </li>
+            <li>Installez les dépendances de développement (pour les tests) :
+                <pre><code class="language-bash">pip install -e ".[dev]"</code></pre>
+            </li>
+        </ol>
+
+        <h2>Configuration des Variables d'Environnement</h2>
+        <p>Le client Python utilise les variables d'environnement suivantes. Copiez le fichier <code>.env.example</code> en <code>.env</code> ou définissez ces variables dans votre shell avant d'exécuter l'agent :</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Variable</th>
+                    <th>Description</th>
+                    <th>Valeur par défaut</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>BACKEND_WS_URL</code></td>
+                    <td>Point de terminaison WebSocket du backend</td>
+                    <td><code>ws://localhost:8000/ws</code></td>
+                </tr>
+                <tr>
+                    <td><code>HEARTBEAT_INTERVAL_SECONDS</code></td>
+                    <td>Intervalle entre les messages heartbeat en secondes</td>
+                    <td><code>10</code></td>
+                </tr>
+                <tr>
+                    <td><code>BMAD_AUTH_TOKEN</code></td>
+                    <td>Jeton Bearer pour authentifier la connexion WebSocket</td>
+                    <td><em>Non défini</em></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="note">
+            <div class="note-title">Note importante :</div>
+            <p>Le fichier <code>.env</code> n'est pas chargé automatiquement par <code>agent/realtime.py</code>. Vous devez exporter ces variables dans votre shell (ou utiliser un outil comme <code>direnv</code>) avant d'exécuter le client agent.</p>
+        </div>
+
+        <h3>Exemple de configuration shell :</h3>
+        <pre><code class="language-bash">export BACKEND_WS_URL="ws://localhost:8000/ws"
+export HEARTBEAT_INTERVAL_SECONDS="10"
+export BMAD_AUTH_TOKEN="votre_jeton_jwt_ici"</code></pre>
+
+        <h2>Utilisation</h2>
+
+        <h3>Mode de vérification de démarrage (Boot-Check)</h3>
+        <p>Dans la version 0.1.0 (Story 0.1), l'agent CLI effectue une vérification de démarrage : il se lance, imprime une ligne d'état, et se ferme proprement.</p>
+
+        <pre><code class="language-bash">python -m agent.main</code></pre>
+
+        <h3>Sortie attendue :</h3>
+        <div class="success-box">
+            <code>bmad-portal client agent v0.1.0: ok</code>
+        </div>
+
+        <p><strong>Code de sortie :</strong> <code>0</code> (succès)</p>
+
+        <h2>Architecture du Client</h2>
+
+        <h3>Composants Principaux</h3>
+
+        <h4>1. <code>agent/main.py</code> - Point d'entrée CLI</h4>
+        <p>Ce module sert de point d'entrée pour l'agent client CLI.</p>
+        <p><strong>Fonctionnalités :</strong></p>
+        <ul>
+            <td>Impression de la version et du statut</li>
+            <li>Retour du code de sortie 0 en cas de succès</li>
+        </ul>
+
+        <h4>2. <code>agent/realtime.py</code> - Client WebSocket reconnectable</h4>
+        <p>Ce module gère la connexion persistante au point de terminaison <code>/ws</code> du backend.</p>
+
+        <p><strong>Fonctionnalités principales :</strong></p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Fonction</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>connect_and_run()</code></td>
+                    <td>Maintient une connexion WebSocket persistante et authentifiée</td>
+                </tr>
+                <tr>
+                    <td><code>_send_heartbeats()</code></td>
+                    <td>Envoie un message <code>{"type": "heartbeat"}</code> à l'intervalle spécifié</td>
+                </tr>
+                <tr>
+                    <td><code>_receive_messages()</code></td>
+                    <td>Lit et journalise les messages entrants</td>
+                </tr>
+                <tr>
+                    <td><code>_sync_state_reporter()</code></td>
+                    <td>Analyse périodiquement le dépôt et envoie les rapports d'état Git</td>
+                </tr>
+                <tr>
+                    <td><code>_send_git_state_report()</code></td>
+                    <td>Envoie un rapport d'état Git via le format d'enveloppe <code>client_git_state_report</code></td>
+                </tr>
+                <tr>
+                    <td><code>_send_client_identity_report()</code></td>
+                    <td>Envoie un rapport d'identité client via le format d'enveloppe <code>client_identity_report</code></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p><strong>Reconnexion avec backoff exponentiel :</strong></p>
+        <p>En cas d'erreur de connexion ou de fermeture inattendue, le client se reconnecte avec un backoff exponentiel et un "full jitter" :</p>
+        <ul>
+            <li><strong>Base backoff :</strong> 1.0 seconde</li>
+            <li><strong>Facteur de backoff :</strong> x2</li>
+            <li><strong>Backoff maximal :</strong> 30.0 secondes</li>
+        </ul>
+
+        <p><strong>Codes de rejet fataux :</strong></p>
+        <p>Le client ne tente pas de se reconnecter si le backend ferme la connexion avec les codes suivants :</p>
+        <ul>
+            <li><code>4401</code> - Non autorisé (unauthorized)</li>
+            <li><code>4403</code> - Origine interdite (forbidden origin)</li>
+            <li><code>401</code> / <code>403</code> - Codes de statut de handshake invalides</li>
+        </ul>
+
+        <h4>3. <code>agent/git_state.py</code> - Détection de l'état Git</h4>
+        <p>Ce module scanne un dépôt Git local et détecte :</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Fonction</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>get_remote_identity()</code></td>
+                    <td>Extrait l'identité du dépôt distant (format : <code>git@github.com:org/repo.git</code> ou <code>https://github.com/org/repo.git</code>)</td>
+                </tr>
+                <tr>
+                    <td><code>get_local_drift()</code></td>
+                    <td>Retourne les compteurs <code>ahead</code> et <code>behind</code> par rapport au branche distante de suivi</td>
+                </tr>
+                <tr>
+                    <td><code>get_in_progress_git_action()</code></td>
+                    <td>Détecte les actions Git en cours : <code>"rebase"</code>, <code>"merge"</code>, <code>"conflict"</code>, ou <code>None</code></td>
+                </tr>
+                <tr>
+                    <td><code>is_bmad_enabled()</code></td>
+                    <td>Vérifie la présence de marqueurs BMad (<code>prjdocs/</code>, <code>.bmad/</code>, <code>epics.md</code>, <code>stories/</code>)</td>
+                </tr>
+                <tr>
+                    <td><code>scan_repository()</code></td>
+                    <td>Retourne un dictionnaire d'état complet du dépôt Git</td>
+                </tr>
+                <tr>
+                    <td><code>get_current_branch()</code></td>
+                    <td>Retourne le nom de la branche actuelle</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Format du rapport d'état Git (<code>client_git_state_report</code>) :</h3>
+        <pre><code class="language-json">{
+  "type": "client_git_state_report",
+  "technical_identifier": "git@github.com:org/repo.git",
+  "branch": "main",
+  "ahead": 2,
+  "behind": 1,
+  "in_progress_action": "none",
+  "is_bmad_enabled": true
+}</code></pre>
+
+        <h3>Format du rapport d'identité client (<code>client_identity_report</code>) :</h3>
+        <pre><code class="language-json">{
+  "type": "client_identity_report",
+  "technical_identifier": "git@github.com:org/repo.git"
+}</code></pre>
+
+        <h2>Exécution des Tests</h2>
+        <p>Pour exécuter la suite de tests du client :</p>
+
+        <pre><code class="language-bash"># Avec pytest
+pytest tests/ -v
+
+# Avec ruff pour la vérification du code
+ruff check .
+
+# Formatage avec ruff
+ruff format .</code></pre>
+
+        <h3>Couverture des Tests</h3>
+        <p>Les tests incluent :</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Fichier de test</th>
+                    <th>Couverture</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>test_main.py</code></td>
+                    <td>Vérifie que le point d'entrée CLI imprime une ligne d'état et retourne 0</td>
+                </tr>
+                <tr>
+                    <td><code>test_realtime.py</code></td>
+                    <td>Tests du client WebSocket : heartbeat périodique, reconnexion avec backoff, fermeture de connexion, événement stop, codes de fermeture fatals</td>
+                </tr>
+                <tr>
+                    <td><code>test_git_state.py</code></td>
+                    <td>Tests de détection Git : identité distante, divergence locale, actions en cours (merge, rebase, conflict), marqueurs BMad, structure du rapport complet</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>Flux de Travail</h2>
+
+        <h3>Diagramme de Connexion WebSocket</h3>
+        <div class="mermaid">
+<pre>sequenceDiagram
+    participant Client
+    participant Backend WS
+    participant Git State
+
+    Client->>Backend WS: Connect avec token (?token=&lt;jwt&gt;)
+    alt Connexion réussie
+        Backend WS-->>Client: Connection établie
+        Client->>Git State: scan_repository()
+        Git State-->>Client: État du dépôt
+        Client->>Backend WS: client_identity_report
+        Client->>Backend WS: client_git_state_report
+
+        loop Périodiquement (10s)
+            Client->>Backend WS: heartbeat
+            Client->>Git State: scan_repository()
+            Client->>Backend WS: client_git_state_report
+        end
+    else Rejet (4401/4403)
+        Backend WS-->>Client: Close code 4401/4403
+        Client->>Client: Log error, no retry
+    else Erreur de connexion
+        Backend WS-->>Client: Connection error
+        Client->>Client: Backoff exponentiel + full jitter
+        Client->>Backend WS: Nouvelle tentative de connexion
+    end</pre>
+        </div>
+
+        <h3>Logique de Détection Git</h3>
+        <div class="mermaid">
+<pre>flowchart TD
+    A[scan_repository appelé] --> B[get_remote_identity]
+    A --> C[get_local_drift]
+    A --> D[get_current_branch]
+    A --> E[get_in_progress_git_action]
+    A --> F[is_bmad_enabled]
+
+    E --> E1{MERGE_HEAD existe?}
+    E1 -->|Oui| E2[retourne 'merge']
+    E1 -->|Non| E3{rebase-apply ou rebase-merge existe?}
+    E3 -->|Oui| E4[retourne 'rebase']
+    E3 -->|Non| E5[ls-files --unmerged]
+    E5 -->|Unmerged files| E6[retourne 'conflict']
+    E5 -->|Aucun| E7[retourne None]
+
+    F --> F1{prjdocs/ existe?}
+    F --> F2{.bmad/ existe?}
+    F --> F3{epics.md existe?}
+    F --> F4{stories/ existe?}
+    F1 -->|Oui| F5[retourne True]
+    F2 -->|Oui| F5
+    F3 -->|Oui| F5
+    F4 -->|Oui| F5
+    F1 & F2 & F3 & F4 -->|Aucun| F6[retourne False]</pre>
+        </div>
+
+        <h2>Dépannage</h2>
+
+        <h3>Problème : Échec d'authentification WebSocket</h3>
+        <p><strong>Symptôme :</strong> Le client logue un rejet avec le code <code>4401</code> ou <code>4403</code>.</p>
+        <p><strong>Solutions :</strong></p>
+        <ol>
+            <li>Vérifiez que <code>BMAD_AUTH_TOKEN</code> est défini et valide</li>
+            <li>Obtenez un nouveau token en utilisant <code>POST /auth/login</code> (voir le fichier CONTRIBUTING.md du dépôt principal)</li>
+            <li>Vérifiez que l'origine de la connexion est autorisée par le backend</li>
+        </ol>
+
+        <h3>Problème : Timeout des commandes Git</h3>
+        <p><strong>Symptôme :</strong> Les commandes Git semblent hanging ou retournent un timeout.</p>
+        <p><strong>Solutions :</strong></p>
+        <ol>
+            <li>Les commandes Git ont un timeout de 30 secondes intégré</li>
+            <li>Vérifiez qu'il n'y a pas de hooks Git bloquants (<code>HUSKY=0</code> est défini)</li>
+            <li>Vérifiez la santé du dépôt Git local</li>
+        </ol>
+
+        <h3>Problème : Échec de la détection de la branche distante</h3>
+        <p><strong>Symptôme :</strong> <code>ahead</code> et <code>behind</code> sont toujours <code>0</code> même s'il y a des commits locaux.</p>
+        <p><strong>Solutions :</strong></p>
+        <ol>
+            <li>Vérifiez que la branche locale a une branche de suivi configurée : <code>git branch --set-upstream-to=origin/&lt;branche&gt;</code></li>
+            <li>Vérifiez que le remote <code>origin</code> est correctement configuré : <code>git remote -v</code></li>
+        </ol>
+
+        <h2>Historique des Versions</h2>
+
+        <h3>Version 0.1.0</h3>
+        <ul>
+            <li>Point d'entrée CLI initial avec vérification de démarrage (boot-check)</li>
+            <li>Impression de la version et du statut</li>
+            <li>Code de sortie 0 en cas de succès</li>
+            <li>Structure prête pour l'intégration WebSocket (Story 2.1/2.2)</li>
+        </ul>
+
+        <h2>Références</h2>
+        <ul>
+            <li><strong>Backend WebSocket Endpoint :</strong> <code>/ws</code></li>
+            <li><strong>Format des messages WebSocket :</strong> Enveloppes avec champ <code>type</code> (<code>heartbeat</code>, <code>client_git_state_report</code>, <code>client_identity_report</code>)</li>
+            <li><strong>Authentification :</strong> Token JWT passé en paramètre de requête <code>?token=&lt;jwt&gt;</code></li>
+        </ul>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>Guide d'Utilisation - Client Python bmad-portal | Version 0.1.0 | Généré le 2026-08-11</p>
+        </div>
+    </footer>
+</body>
+</html>

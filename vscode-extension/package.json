@@ -2,7 +2,7 @@
   "name": "bmad-portal-vscode",
   "displayName": "BMad Portal Hub",
   "description": "VS Code extension for BMad Portal Hub - IDE Integration & Dashboard Display",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "bmad-portal",
   "repository": {
     "type": "git",
@@ -92,17 +92,13 @@
           "type": "boolean",
           "default": true,
           "description": "When true, claims suggestions are enabled in the Command Palette. Real suggestions ship in Story 7.7."
+        },
+        "bmadPortal.jwtToken": {
+          "type": "string",
+          "default": "",
+          "description": "JWT token for direct authentication with the Backend Hub. When provided, the extension uses this token directly instead of going through the authentication flow. Token should have long expiration (e.g., 10 years) for workspace sessions."
         }
       }
-    },
-    "views": {
-      "explorer": [
-        {
-          "id": "bmadPortalDashboard",
-          "name": "BMad Portal Dashboard",
-          "when": "bmadPortal.connected"
-        }
-      ]
     },
     "statusBar": {
       "defaultIcon": {
@@ -123,10 +119,11 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm run bundle",
     "compile": "tsc -p ./tsconfig.json",
+    "bundle": "esbuild src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --target=node20",
     "watch": "tsc -watch -p ./tsconfig.json",
-    "package": "vsce package",
+    "package": "npm run bundle && vsce package",
     "lint": "eslint src --ext ts",
     "pretest": "npm run compile && npm run lint"
   },
@@ -134,6 +131,7 @@
     "@types/node": "^20.11.30",
     "@types/vscode": "^1.85.0",
     "@vscode/vsce": "^2.24.0",
+    "esbuild": "^0.28.2",
     "eslint": "^8.57.0",
     "typescript": "^5.4.3"
   }

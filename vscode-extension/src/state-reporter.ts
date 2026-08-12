@@ -1,12 +1,13 @@
 /**
  * State Reporter for BMad Portal VS Code Extension
  *
- * This module provides Backend state reporting via WebSocket or HTTP REST.
+ * This module provides Backend state reporting via HTTP REST API with git state reports.
  */
 
 import * as vscode from 'vscode';
 import { GitState } from './git-poller';
 import { JwtStorageManager } from './jwt-storage';
+import { HttpApiClient, GitStateReport } from './websocket-client';
 
 export interface StateReport {
 	/** Contributor identity */
@@ -23,48 +24,80 @@ export interface StateReport {
 
 export class StateReporter {
 	private backendHubUrl: string;
-	private authToken?: string;
-	private lastReportTimestamp?: number;
 	private jwtStorage: JwtStorageManager;
+	private httpClient: HttpApiClient | null = null;
+	private lastReportTimestamp?: number;
 
 	constructor(private context: vscode.ExtensionContext) {
 		const config = vscode.workspace.getConfiguration('bmadPortal');
-		this.backendHubUrl = config.get<string>('backendHubUrl', 'http://localhost:3000');
+		this.backendHubUrl = config.get<string>('backendHubUrl', 'http://localhost:8000');
 
 		this.jwtStorage = new JwtStorageManager(context);
+
+		// Initialize HTTP client
+		this.initializeHttpClient();
+	}
+
+	private async initializeHttpClient(): Promise<void> {
+		// Retrieve JWT from workspace settings or SecretStorage
+		const settingsToken = vscode.workspace.getConfiguration('bmadPortal').get<string>('jwtToken');
+		const jwtToken = settingsToken && settingsToken !== '' ? settingsToken : (await this.jwtStorage.getJwtToken() || null);
+
+		this.httpClient = new HttpApiClient(this.backendHubUrl, jwtToken);
 	}
 
 	public async reportGitState(state: GitState): Promise<void> {
-		// Ensure we have the latest auth token before reporting
-		await this.updateAuthToken();
+		// Retrieve JWT token
+		const settingsToken = vscode.workspace.getConfiguration('bmadPortal').get<string>('jwtToken');
+		const jwtToken = settingsToken && settingsToken !== '' ? settingsToken : await this.jwtStorage.getJwtToken();
 
-		const report: StateReport = {
-			userId: 'default-user', // Would be retrieved from auth context
-			remoteUrl: state.remoteUrl,
-			gitState: state,
-			timestamp: Date.now(),
-			isStale: this.isStaleReport(),
+		// Initialize HTTP client if not exists
+		if (!this.httpClient) {
+			vscode.window.showInformationMessage('BMad Portal: HTTP client not initialized, initializing...');
+			this.httpClient = new HttpApiClient(this.backendHubUrl, jwtToken || null);
+		}
+
+		// Prepare Git state report
+		const gitStateReport: GitStateReport = {
+			technicalIdentifier: state.remoteUrl || 'unknown-repo',
+			branch: this.extractBranchFromState(state),
+			ahead: state.aheadCount,
+			behind: state.behindCount,
+			inProgressAction: this.determineInProgressAction(state),
+			isBmadEnabled: true,
 		};
 
 		try {
-			await this.sendReportToBackend(report);
-			this.lastReportTimestamp = Date.now();
-		} catch (error) {
-			// Check if the error is due to authentication failure (401 Unauthorized)
-			if (error instanceof Error && error.message.includes('401')) {
-				// Token expired or invalid, trigger re-authentication flow
-				console.warn('Authentication failed during state report, token may be expired');
-				// Clear the invalid token
-				await this.jwtStorage.deleteJwtToken();
-				this.authToken = undefined;
-
-				vscode.window.showWarningMessage('BMad Portal: Session expired. Please re-authenticate.');
-				throw new Error('Authentication required: session expired');
+			vscode.window.showInformationMessage('BMad Portal: Sending Git state report to Backend Hub via HTTP...');
+			if (this.httpClient) {
+				await this.httpClient.sendGitStateReport(gitStateReport);
 			}
-
-			vscode.window.showWarningMessage(`BMad Portal: State report failed: ${error}`);
+			this.lastReportTimestamp = Date.now();
+			vscode.window.showInformationMessage('BMad Portal: Git state report sent successfully via HTTP.');
+		} catch (error) {
+			vscode.window.showWarningMessage(`BMad Portal: Git state report failed: ${error}`);
+			console.debug('State report failed:', error);
 			throw error;
 		}
+	}
+
+	private extractBranchFromState(state: GitState): string {
+		// In a real implementation, this would extract the current branch from the Git state
+		// For now, return a default branch name
+		return 'main';
+	}
+
+	private determineInProgressAction(state: GitState): 'none' | 'rebase' | 'merge' | 'conflict' {
+		if (state.isRebasing) {
+			return 'rebase';
+		}
+		if (state.isMerging) {
+			return 'merge';
+		}
+		if (state.hasConflicts) {
+			return 'conflict';
+		}
+		return 'none';
 	}
 
 	private isStaleReport(): boolean {
@@ -73,35 +106,5 @@ export class StateReporter {
 		}
 		const timeSinceLastReport = Date.now() - this.lastReportTimestamp;
 		return timeSinceLastReport > 30000; // 30 seconds threshold
-	}
-
-	private async sendReportToBackend(report: StateReport): Promise<void> {
-		// In a real implementation, this would send via WebSocket or HTTP REST
-		// For now, we'll use HTTP REST POST to the backend state reporting endpoint
-
-		const endpoint = `${this.backendHubUrl}/api/v1/repo-state`;
-
-		const headers: Record<string, string> = {
-			'Content-Type': 'application/json',
-		};
-
-		if (this.authToken) {
-			headers['Authorization'] = `Bearer ${this.authToken}`;
-		}
-
-		const response = await fetch(endpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify(report),
-		});
-
-		if (!response.ok) {
-			throw new Error(`Backend report failed with status ${response.status}`);
-		}
-	}
-
-	private async updateAuthToken(): Promise<void> {
-		// Retrieve JWT from SecretStorage
-		this.authToken = await this.jwtStorage.getJwtToken();
 	}
 }

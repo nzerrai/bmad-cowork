@@ -2,6 +2,7 @@
  * Web View Provider for Sidebar Dashboard
  *
  * This module implements the vscode.WebviewViewProvider API to render the sidebar dashboard.
+ * It uses WebSocket for receiving dashboard data from the Backend Hub.
  */
 
 import * as vscode from 'vscode';
@@ -9,6 +10,7 @@ import { getWebviewContent } from './webview-content';
 import { AuthManager } from './auth-manager';
 import { JwtStorageManager } from './jwt-storage';
 import { ApiClient, DashboardData } from './api-client';
+import { HttpApiClient } from './websocket-client';
 
 export class DashboardWebviewViewProvider implements vscode.WebviewViewProvider {
 	public static readonly viewType = 'bmadPortal.dashboard';
@@ -17,6 +19,7 @@ export class DashboardWebviewViewProvider implements vscode.WebviewViewProvider 
 	private _authManager?: AuthManager;
 	private _jwtStorage?: JwtStorageManager;
 	private _apiClient?: ApiClient;
+	private _httpClient?: HttpApiClient;
 
 	constructor(
 		private readonly _context: vscode.ExtensionContext,
@@ -27,8 +30,25 @@ export class DashboardWebviewViewProvider implements vscode.WebviewViewProvider 
 		this._jwtStorage = authenticatedJwtStorage;
 
 		// Initialize API client with Backend Hub base URL
-		const backendBaseUrl = vscode.workspace.getConfiguration('bmadPortal').get('backendUrl', 'https://api.bmad-portal.com');
-		this._apiClient = new ApiClient(backendBaseUrl, null);
+		const backendHubUrl = vscode.workspace.getConfiguration('bmadPortal').get('backendHubUrl', 'http://localhost:8000');
+		vscode.window.showInformationMessage(`BMad Portal: Initializing API client with Backend Hub URL: ${backendHubUrl}`);
+		this._apiClient = new ApiClient(backendHubUrl, null);
+
+		// Initialize HTTP client for dashboard data
+		this.initializeHttpClient(backendHubUrl);
+	}
+
+	private async initializeHttpClient(backendHubUrl: string): Promise<void> {
+		// Retrieve JWT from workspace settings or SecretStorage
+		const settingsToken = vscode.workspace.getConfiguration('bmadPortal').get<string>('jwtToken');
+		const jwtToken = settingsToken && settingsToken !== '' ? settingsToken : (this._jwtStorage ? await this._jwtStorage.getJwtToken() : null);
+
+		this._httpClient = new HttpApiClient(backendHubUrl, jwtToken || null);
+
+		// Request dashboard data update on init
+		if (this._view) {
+			this.refreshDashboard();
+		}
 	}
 
 	public resolveWebviewView(webviewView: vscode.WebviewView): void | Thenable<void> {
@@ -70,37 +90,68 @@ export class DashboardWebviewViewProvider implements vscode.WebviewViewProvider 
 	}
 
 	private async _handleGetDashboardData(webview: vscode.Webview): Promise<void> {
+		vscode.window.showInformationMessage('BMad Portal: Fetching dashboard data from Backend Hub via HTTP...');
+
 		try {
-			// Get JWT token from storage
-			const jwtToken = this._jwtStorage ? await this._jwtStorage.getJwtToken() : null;
+			// Get JWT token from workspace settings or storage
+			const settingsToken = vscode.workspace.getConfiguration('bmadPortal').get<string>('jwtToken');
+			const jwtToken = settingsToken && settingsToken !== '' ? settingsToken : (this._jwtStorage ? await this._jwtStorage.getJwtToken() : null);
 
 			if (!jwtToken) {
+				vscode.window.showWarningMessage('BMad Portal: No JWT token available for dashboard. Please ensure token is configured in .vscode/settings.json');
 				// Trigger re-authentication flow
 				await this._handleReauthenticate();
 				return;
 			}
 
-			// Update API client with JWT token
-			if (this._apiClient) {
-				this._apiClient.setJwtToken(jwtToken);
+			vscode.window.showInformationMessage('BMad Portal: JWT token found. Preparing dashboard view...');
+
+			// Initialize HTTP client if not exists
+			if (!this._httpClient) {
+				const backendHubUrl = vscode.workspace.getConfiguration('bmadPortal').get('backendHubUrl', 'http://localhost:8000');
+				this._httpClient = new HttpApiClient(backendHubUrl, jwtToken);
 			}
 
-			// Fetch actual dashboard data from Backend Hub using JWT token
-			const apiClient = this._apiClient;
-			if (!apiClient) {
-				throw new Error('API client not initialized');
-			}
+			// Fetch dashboard data via HTTP
+			const dashboardData = await this._httpClient.getDashboardData();
 
-			const dashboardData: DashboardData = await apiClient.getDashboardData();
+			if (dashboardData) {
+				if (this._view) {
+					this._view.webview.postMessage({
+						command: 'dashboardDataReceived',
+						data: dashboardData
+					});
+					vscode.window.showInformationMessage('BMad Portal: Dashboard data received via HTTP.');
+				}
+			} else {
+				// Fallback to initial mock data if HTTP request fails
+				const initialDashboardData: DashboardData = {
+					status: 'absent',
+					repoState: {
+						syncStatus: 'Idle-Offline',
+						ahead: 0,
+						behind: 0,
+						hasInProgressRebase: false,
+						hasInProgressMerge: false,
+						hasInProgressConflict: false
+					},
+					claims: [],
+					riskSignals: [],
+					lastKnownTime: new Date().toLocaleString(),
+					isStale: false
+				};
 
-			if (this._view) {
-				this._view.webview.postMessage({
-					command: 'dashboardDataReceived',
-					data: dashboardData
-				});
+				if (this._view) {
+					this._view.webview.postMessage({
+						command: 'dashboardDataReceived',
+						data: initialDashboardData
+					});
+					vscode.window.showInformationMessage('BMad Portal: Dashboard view initialized with initial state.');
+				}
 			}
 		} catch (error) {
 			console.error('Error fetching dashboard data:', error);
+			vscode.window.showWarningMessage(`BMad Portal: Dashboard data error: ${error}`);
 
 			// Handle authentication errors by triggering re-authentication
 			if (error instanceof Error && (error.message.includes('JWT token expired or invalid') || error.message.includes('No JWT token available'))) {
