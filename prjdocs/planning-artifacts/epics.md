@@ -97,7 +97,7 @@ FR7: Epic 2 - Identification automatique du Client via le remote
 FR8: Epic 2 - Création/jonction automatique de l'espace Hub
 FR9: Epic 2 - Statut `pending` et prompt d'accès actionnable
 FR10: Epic 2 - Reporting continu du drift Git local
-FR11: Epic 3 - Lease-based claiming avec heartbeat
+FR11: Epic 3 - Lease-based claiming avec heartbeat (deprecated - replaced by Epic 8 simplified claiming)
 FR12: Epic 3 - Auto-Healing Sync
 FR13: Epic 3 - Dashboard Overview/Health (vue Git + BMAD)
 FR14: Epic 3 - Vues par contributeur avec indicateurs de statut
@@ -106,10 +106,12 @@ FR16: Epic 3 - Action Re-sync en un clic
 FR17: Epic 4 - Status Sprint
 FR18: Epic 4 - Cérémonies
 FR19: Epic 4 - Graphiques déterministes
-FR20: Epic 5 - Signaux de risque
+FR20: Epic 5 - Signaux de risque (deprecated - replaced by Epic 8 simplified status)
 FR21: Epic 5 - Quality Gates avec score de compliance
 FR22: Epic 6 - Administration Système
 FR23: Epic 3 - Notifications instantanées
+
+Epic 8 - HUB Simplification & Dashboard Repo Listing (simplified login entry point, latest status only, user-scoped repo listing, dashboard content per repository)
 
 **Epic 0 (Project Scaffolding & Dev Environment) : aucune FR numérotée** — couvre l'Additional Requirement "Identity/Auth via RBAC (Backend)" plus le scaffolding technique ; prérequis à Epic 1 et à tout le reste, correspond à Sprint 0.
 
@@ -149,6 +151,11 @@ Les utilisateurs identifient les stories à risque, les modules à risque de con
 Un Admin configure les dépôts Git du projet, gère les utilisateurs/rôles, et supervise la gouvernance de la plateforme.
 **FRs covered:** FR22
 **Implementation Notes:** Surface réservée au rôle Admin (RBAC) ; configuration Git/Repos, gestion Users/Roles, gouvernance.
+
+### Epic 8: HUB Simplification & Dashboard Repo Listing
+Le comportement du HUB est simplifié pour éliminer la complexité inutile : login comme point d'entrée unique, enregistrement simple du dernier status sans historique complexe, et dashboard affichant pour chaque repo locale : info distante, statut Git basique, utilisateurs connectés/précédents, US en développement.
+**FRs covered:** FR4, FR5, FR6, FR7, FR8, FR9, FR10, FR13, FR14, FR15, FR23
+**Implementation Notes:** Cette epic documente les décisions de simplification du HUB : suppression des mécanismes complexes de claims par bail (lease) + heartbeat WebSocket, suppression des signaux de risque complexes et calculs de péremption, enregistrement du dernier status seulement sans historique complexe, login comme point d'entrée unique → redirection vers `/hub/dashboard`, dashboard affiche pour chaque repo locale : info distante, status Git (branche, ahead/behind), utilisateurs connectés/précédents, US en développement.
 
 ## Epic 0: Project Scaffolding & Dev Environment
 Sprint 0. La fondation technique des 3 tiers (Client Python, Backend FastAPI, IHM Next.js) est en place et exécutable localement, et l'authentification/RBAC existe comme substrat pour toutes les surfaces gated par rôle — avant toute story à valeur utilisateur.
@@ -641,9 +648,74 @@ So that I can configure the plugin without technical friction.
 
 ---
 
-## 🔜 Post-MVP (Différé) : Copilot IA
+## Epic 8: HUB Simplification & Dashboard Repo Listing
 
-Différé depuis le 2026-08-05 (PRD §7) — non abandonné, repris une fois le socle déterministe (indexation, sync, claims, sprint, risques/qualité) livré. Aucune epic/story générée pour ce périmètre dans le MVP actuel.
+Le comportement du HUB est simplifié pour éliminer la complexité inutile : login comme point d'entrée unique, enregistrement simple du dernier status sans historique complexe, et dashboard affichant pour chaque repo locale : info distante, statut Git basique, utilisateurs connectés/précédents, US en développement.
+
+**FRs covered:** FR4, FR5, FR6, FR7, FR8, FR9, FR10, FR13, FR14, FR15, FR23
+
+**Implementation Notes:** Cette epic documente les décisions de simplification du HUB :
+- Suppression des mécanismes complexes de claims par bail (lease) + heartbeat WebSocket (anciennement Epic 3 Story 3.1)
+- Suppression des signaux de risque complexes et calculs de péremption (anciennement Epic 5)
+- Enregistrement du **dernier status seulement** sans historique complexe ni calculs de staleness
+- Login comme point d'entrée unique → redirection vers `/hub/dashboard`
+- Dashboard affiche pour **chaque repo locale** : info distante, status Git (branche, ahead/behind), utilisateurs connectés/précédents, US en développement
+
+### Story 8.1: Login as Entry Point & User-Scoped Repo Listing
+
+As a user of the HUB,
+I want to log in and see only the repositories I am attached to (or all repos if I am admin),
+So that the dashboard is personalized and relevant to me without complexity.
+
+**Acceptance Criteria:**
+
+**Given** a user successfully logs into the HUB
+**When** they are redirected to `/hub/dashboard` (instead of `/artifacts`)
+**Then** regular users see only the repos they are attached to (via the `SpaceMembership` model)
+**And** administrators see all repos in the HUB
+**And** the dashboard displays a list of repositories attached to the connected user
+
+### Story 8.2: Latest Status Only (No Complex History)
+
+As a HUB Backend,
+I want to store simply the latest status from each connected client/extension — without complex history or staleness calculations,
+So that the system remains simple and performant.
+
+**Acceptance Criteria:**
+
+**Given** a client or extension sends periodic status updates for local repositories
+**When** the HUB receives the status
+**Then** it stores only the latest status — branch, ahead/behind counts, and in-progress actions
+**And** no complex history or staleness tracking is maintained
+**And** the dashboard displays the current Git status without "Last known — Xs ago" calculations
+
+### Story 8.3: Dashboard Content per Repository
+
+As a HUB user,
+I want the dashboard to display for each repository: remote repo info, current Git status, connected users, and US in development,
+So that I have a clear, simplified view of the repository state.
+
+**Acceptance Criteria:**
+
+**Given** a repository is displayed in the dashboard
+**When** the user views the repository entry
+**Then** it shows the remote repository information
+**And** it shows the current Git status (branch, ahead/behind counts) sent by the local client/extension
+**And** it shows users currently connected or who have previously connected to this repository
+**And** it shows User Stories in development linked to this repository
+
+### Story 8.4: Simplified User Story Claims
+
+As a Developer,
+I want to claim User Stories for development, with the HUB tracking who is working on which story based on the latest status reports,
+So that I have simple story ownership without complex lease/heartbeat mechanisms.
+
+**Acceptance Criteria:**
+
+**Given** a User Story is available
+**When** a user claims it
+**Then** the HUB tracks which user is currently working on which story based on the latest status reports from clients/extensions
+**And** no lease-based claiming with WebSocket heartbeat expiration is required
 
 - **Assistant de Rédaction (Drafting Assistant)** : l'IA propose du contenu (PRD, Specs, Stories) suivant les templates BMad ; les propositions sont des "Drafts" nécessitant validation/commit manuel.
 - **Interface RAG (Provenance-Linked Graph-RAG)** : Knowledge Graph (`Story -> implements -> PRD`, etc.) pour répondre à des questions complexes ; chaque étape de raisonnement ancrée à `{file_path, git_hash, line_range}`.

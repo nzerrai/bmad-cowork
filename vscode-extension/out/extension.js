@@ -545,17 +545,57 @@ var AuthManager = class {
       "Cancel"
     );
     if (result === "Reauthenticate") {
-      vscode5.window.showInformationMessage("BMad Portal: Re-authentication flow would be initiated here.");
+      await this.login();
     }
   }
-  // private async initiateAuthFlow(): Promise<void> {
-  // 	// Placeholder for actual authentication flow initiation
-  // 	// This would typically:
-  // 	// 1. Open a browser window to the backend auth endpoint
-  // 	// 2. Listen for a redirect with the auth code/token
-  // 	// 3. Exchange the code/token for a JWT
-  // 	// 4. Call authenticateWithToken with the received JWT
-  // }
+  /**
+   * Prompt for email/password, exchange them for a JWT via the Backend
+   * Hub's `POST /auth/login`, and store the resulting token.
+   * @returns True if authentication succeeded, false if cancelled or failed
+   */
+  async login() {
+    const backendHubUrl = vscode5.workspace.getConfiguration("bmadPortal").get("backendHubUrl", "http://localhost:8000");
+    const email = await vscode5.window.showInputBox({
+      title: "BMad Portal: Login",
+      prompt: "Email",
+      placeHolder: "you@example.com",
+      ignoreFocusOut: true
+    });
+    if (!email) {
+      return false;
+    }
+    const password = await vscode5.window.showInputBox({
+      title: "BMad Portal: Login",
+      prompt: "Password",
+      password: true,
+      ignoreFocusOut: true
+    });
+    if (!password) {
+      return false;
+    }
+    try {
+      const response = await fetch(`${backendHubUrl}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
+      if (!response.ok) {
+        const message = response.status === 401 ? "Invalid email or password." : `Login failed: ${response.status} ${response.statusText}`;
+        vscode5.window.showErrorMessage(`BMad Portal: ${message}`);
+        return false;
+      }
+      const body = await response.json();
+      if (!body.access_token) {
+        vscode5.window.showErrorMessage("BMad Portal: Login response did not include an access token.");
+        return false;
+      }
+      await this.authenticateWithToken(body.access_token);
+      return true;
+    } catch (error) {
+      vscode5.window.showErrorMessage(`BMad Portal: Could not reach Backend Hub at ${backendHubUrl}: ${error}`);
+      return false;
+    }
+  }
 };
 
 // src/webview-provider.ts
@@ -759,8 +799,10 @@ function getWebviewContent(webview, extensionUri, theme) {
 	</div>
 
 	<script>
+		const vscode = acquireVsCodeApi();
+
 		// Handle messages from VS Code extension
-		vscode.addEventListener('message', event => {
+		window.addEventListener('message', event => {
 			const message = event.data;
 
 			switch (message.command) {
@@ -1437,6 +1479,13 @@ async function activate(context) {
   const isAuthenticated = authManager ? authManager.isAuthenticatedState() : false;
   const authStatus = isAuthenticated ? "authenticated (using workspace JWT token or SecretStorage)" : "not authenticated";
   vscode11.window.showInformationMessage(`BMad Portal: Authentication status: ${authStatus}`);
+  if (!isAuthenticated && authManager) {
+    vscode11.window.showWarningMessage("BMad Portal: Not connected to the Backend Hub.", "Login").then((selection) => {
+      if (selection === "Login") {
+        vscode11.commands.executeCommand("bmad-portal.login");
+      }
+    });
+  }
   vscode11.window.showInformationMessage("BMad Portal: Initializing state reporter and Git poller...");
   stateReporter = new StateReporter(context);
   gitPoller = new GitPoller(context);
@@ -1464,8 +1513,11 @@ async function activate(context) {
   const openDashboardCommand = vscode11.commands.registerCommand(
     "bmad-portal.openDashboard",
     async () => {
-      vscode11.window.showInformationMessage('BMad Portal: Dashboard is available in the sidebar. Please look for "Dashboard View" or "BMad Portal Dashboard" in the sidebar.');
-      await vscode11.commands.executeCommand("workbench.action.toggleSidebarVisibility");
+      try {
+        await vscode11.commands.executeCommand(`${DashboardWebviewViewProvider.viewType}.focus`);
+      } catch {
+        vscode11.window.showInformationMessage('BMad Portal: Dashboard is available in the sidebar. Please look for "BMad Portal" in the activity bar.');
+      }
     }
   );
   const disconnectCommand = vscode11.commands.registerCommand(
@@ -1492,12 +1544,28 @@ async function activate(context) {
       }
     }
   );
+  const loginCommand = vscode11.commands.registerCommand(
+    "bmad-portal.login",
+    async () => {
+      if (authManager) {
+        const success = await authManager.login();
+        if (success) {
+          vscode11.commands.executeCommand("setContext", "bmadPortal.connected", true);
+          if (gitPoller) {
+            gitPoller.start();
+          }
+          if (dashboardWebviewProvider) {
+            await dashboardWebviewProvider.refreshDashboard();
+          }
+        }
+      }
+    }
+  );
   const reauthCommand = vscode11.commands.registerCommand(
     "bmad-portal.reauthenticate",
     async () => {
-      vscode11.window.showInformationMessage("BMad Portal: Re-authenticating...");
       if (authManager) {
-        vscode11.window.showInformationMessage("BMad Portal: Re-authentication flow would be initiated here.");
+        await authManager.login();
       }
     }
   );
@@ -1507,6 +1575,7 @@ async function activate(context) {
     openDashboardCommand,
     disconnectCommand,
     reconnectCommand,
+    loginCommand,
     reauthCommand,
     showSuggestedFeaturesCommand
   );

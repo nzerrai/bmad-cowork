@@ -2,8 +2,10 @@
 title: "BMad Portal - The Distributed Collaborative Hub"
 status: final
 created: 2026-08-01
-updated: 2026-08-06
+updated: 2026-08-12
 ---
+
+> **Révision 2026-08-12 :** intégration des décisions d'implémentation actées — §3.1 (listes de repos user-scoped sur le dashboard avec `SpaceMembership`, admin voit tous les repos), §3.4 (redirection post-login vers `/hub/dashboard` au lieu de `/artifacts`), et IHM (icône de barre d'activité VS Code pour ouvrir le dashboard). Le contenu documente des fonctionnalités déjà implémentées dans les specs `spec-dashboard-user-scoped-repos-list.md`, `spec-hub-login-redirect-to-dashboard.md`, et `spec-vscode-dashboard-activity-bar-icon.md` — ce n'est pas un changement de scope.
 
 > **Révision 2026-08-06 :** backport de décisions actées en aval (epics.md/UX) suite au rapport d'Implementation Readiness du 2026-08-06 — §3.3 (seuils de risque chiffrés, modules à risque de conflit Git), nouveau §3.5 (Sprint & Ceremony Tracking), §5 (exigences d'accessibilité), §6 (latence de sync quantifiée). Le contenu ajouté documente des décisions déjà mises en œuvre dans `epics.md` et les docs UX ; ce n'est pas un changement de scope.
 
@@ -36,36 +38,38 @@ updated: 2026-08-06
 
 ## ✨ 3. Core Features (MVP Scope)
 
-### 3.1. The Three Pillars of Synchronization
-* **Local Repo Pillar:** The Client Python agent scans the user's local directory to detect BMad-specific markers and current Git state — including the connected remote repository identity and local drift signals (commits ahead/behind, in-progress Git actions such as rebase/merge/conflict).
-* **WebSocket Pillar (The Nervous System):** Real-time, bidirectional communication between the Backend and all connected Clients/IHM. Used for presence, instant notifications, command dispatching, and — piggybacked on the same heartbeat — local repo state reporting (see below).
-* **Remote Repo Pillar (The Law):** The Backend serves as the bridge to the remote Git repository, acting as the final arbater for claims and state changes. The remote repository's identity also serves as the platform's unique application identifier (see Zero-Setup Onboarding below).
+### 3.1. Core Connection Flow
+* **Login as Entry Point:** The login page is the entry point to the HUB. After successful connection, users are redirected to the dashboard.
+* **Client/Extension Connection:** The Python client or VS Code extension connects using the user's token and the local repository from which the connection is made.
+* **User + Repo Association:** The HUB records the association between the user and the repository. For a new repository, the HUB registers it and triggers a read of the remote repository.
+* **Latest Status Recording:** The client or extension periodically sends the status of their local repositories to the HUB. The HUB simply stores the latest status — branch, ahead/behind counts, and in-progress actions — without maintaining complex history or staleness calculations.
 
-* **Zero-Setup Onboarding & Application Identity:** On launch, the Client automatically identifies itself via the connected remote repository. The technical identifier is the full remote path (host/org/repo) to guarantee uniqueness; the dashboard displays the short repo name, with an org badge/tooltip shown only when two spaces share the same short name. The first Client to report an unrecognized identity triggers automatic creation of the corresponding HUB space; subsequent Clients with the same identity join it automatically — there is no manual "create space" step. If the Backend does not yet have read access to that repository, the space is still created (status `pending`, distinct from `active` and `access_revoked`) and the connecting developer receives an actionable prompt — a direct link to grant access, scoped to the project's Git provider, with a generic text fallback if the provider can't be determined — rather than a silent failure.
+### 3.2. User Story Claims
+* **Story Claiming:** Users can claim User Stories for development. The HUB tracks which user is currently working on which story based on the latest status reports from clients/extensions.
 
-  > **[NOTE FOR PM]** Zero-config auto-onboarding is an assumed design bet, not a validated user need. Build the minimal version and hold off extending it until real onboarding friction is observed.
-
-* **Local Repo State Reporting:** The Client continuously reports local Git drift and in-progress actions to the Backend — pushed immediately on local Git events (e.g. via a Git hook) with a 10-second (configurable) safety tick as fallback. This single stream of raw state feeds both contributor status visibility and the Risk & Quality Signals (§3.3) — one source, multiple consumers.
-
-### 3.2. Distributed Claim & Sync Mechanism
-* **Lease-based Claiming:** A contention-free mechanism where the Backend issues time-limited "leases" for User Stories. To prevent zombie claims during disconnects, Clients must maintain a heartbeat via WebSockets; if the heartbeat fails, the lease expires and the Backend automatically releases the claim.
-* **Auto-Healing Sync:** When a claim is rejected or a conflict is detected, the Client is automatically signaled to synchronize its state with the Backend/Remote Repo.
-
-### 3.3. Risk & Quality Signals
-* **Git Drift Detection:** Monitoring the divergence between local repositories and the remote source of truth, fed continuously by the Local Repo State Reporting stream (§3.1).
-* **Stale Task Signals:** Identifying stories in-progress without activity for **more than 3 days**, and PRs awaiting review for **more than 48 hours**.
-* **High-Risk Git Conflict Modules:** Surfacing modules/paths with an elevated likelihood of merge conflict, derived from the same Git Drift Detection stream (§3.1) — e.g. multiple contributors with local drift touching overlapping paths.
-* **Compliance Gates:** Automated checking of artifact completeness and structural adherence to BMad standards, with a compliance score broken down per section rather than a single pass/fail.
+### 3.3. Git Status & User Activity
+* **Latest Status Recording:** The HUB simply records the latest status from each connected client/extension — branch, ahead/behind counts, and in-progress actions. No complex history or staleness calculations are maintained.
+* **User Connection Status:** The dashboard shows which users are currently connected to or have previously connected to a given repository.
+* **Development State:** Display of User Stories in development and basic Git delta (ahead/behind) for each repository.
 
 ### 3.4. Core User Journeys (Golden Paths)
-* **The Dev Loop:** *Local Change $\rightarrow$ Git Commit $\rightarrow$ Auto-Sync to Hub.*
-* **The PM Pulse:** *Dashboard $\rightarrow$ Risk Signal Alert $\rightarrow$ One-click 'Re-sync' of stale stories.*
-* **The Auditor's Audit:** *Select Artifact $\rightarrow$ Run BMad Compliance Gate $\rightarrow$ View Compliance Score.*
+* **The Dev Loop:** *Local Change $\rightarrow$ Git Commit $\rightarrow$ Status Sync to Hub.*
+* **The Dashboard View:** *Login $\rightarrow$ Select Repository $\rightarrow$ View connected users, Git status, and US in development.*
 
 ### 3.5. Sprint & Ceremony Tracking
 * **Sprint Status:** Progression of stories done vs. total, sprint dates, and objectives, with completion percentage.
 * **Ceremonies:** A list of ceremonies (standup, planning, review, retro) with status (upcoming/completed/missed) and links to their notes artifacts.
 * **Deterministic Charts:** Burn-down and velocity charts generated deterministically from artifact and Git activity data — no AI/LLM involvement, consistent with the platform's Deterministic Truth philosophy (§1).
+
+### 3.6. Dashboard & Repo Listing
+* **Login as Entry Point:** After successful login, users are redirected to `/hub/dashboard` (the Hub dashboard) instead of `/artifacts`.
+* **User-Scoped Repos List:** The `/hub/dashboard` overview displays a list of repositories attached to the connected user. For regular users, this includes only the repos they are attached to (via the `SpaceMembership` model). For administrators, it displays all repos in the HUB.
+* **Status de chaque repo local:** Pour chaque repository dans la liste, le dashboard affiche :
+  - La remote repository information
+  - Le status Git actuel (branche, ahead/behind counts) envoyé par le client/extension local
+  - Les utilisateurs actuellement connectés ou ayant précédemment connecté à cette repository
+  - Les User Stories en développement liées à cette repository
+* **Latest Status Only:** The HUB stores simply the latest status from each connected client/extension — no complex history or staleness tracking is maintained.
 
 ---
 
@@ -81,14 +85,15 @@ updated: 2026-08-06
 * **Client:** Python (CLI/Service).
 * **IHM:** React / Next.js with real-time charting (Recharts/D3).
 * **Data Layer:** Graph-based indexing of Markdown/YAML/JSON artifacts.
+* **VS Code Extension:** VS Code webview dashboard with an activity bar icon container (`viewsContainers.activitybar`) for one-click access to the `bmadPortal.dashboard` view, using standard VS Code contribution points (`viewsContainers.activitybar` and `views`).
 
 ---
 
 ## ⚖️ 5. Constraints & Guardrails
 
-* **Deterministic Core:** All critical operations (claiming, status updates, synchronization) are 100% deterministic and managed by the Backend/Git.
-* **Isolation:** The Client remains the only entity with direct access to the user's local filesystem.
-* **Automated Auditability:** All critical state transitions (claims, lease expiries, sync events) must be logged in the `.memlog.md` to ensure a human-readable, verifiable history of platform events.
+* **Simple Status Recording:** The HUB stores only the latest status from each connected client/extension — no complex history or staleness tracking is maintained.
+* **Isolation:** The Client/Extension remains the only entity with direct access to the user's local filesystem and Git operations.
+* **Automated Auditability:** Critical state transitions (user+repo associations, status updates) must be logged to ensure a human-readable, verifiable history of platform events.
 * **Accessibility:** All operational status indicators must meet WCAG AA contrast on the platform's background/surface colors. Full keyboard accessibility is required for complex data tables and command menus, with tab order following visual reading order on every surface.
 * **AI Guardrails (apply when §7 is picked back up):** AI is never allowed to perform deterministic-core actions autonomously. Human-in-the-loop (HITL) — all AI-generated content must pass through a "Draft $\rightarrow$ Review $\rightarrow$ Commit" cycle.
 
@@ -96,9 +101,9 @@ updated: 2026-08-06
 
 ## 📈 6. Success Metrics
 
-* **Zero Collision Rate:** No double-claims or state conflicts in a multi-user environment.
-* **Sync Latency:** When the local Git hook fires, the Dashboard reflects the new state within the same second (no page reload). If the hook doesn't fire, the 10-second (configurable) safety tick is the fallback ceiling — latency degrades to that bound, nothing is lost.
-* **Compliance Score:** Percentage of artifacts that pass the automated BMad quality gates.
+* **Simple Status Accuracy:** The dashboard accurately reflects the latest status sent by connected clients/extensions for each repository.
+* **User Visibility:** Users can easily see which repositories they are attached to, and admins can see all repositories in the HUB.
+* **Dashboard Clarity:** The dashboard provides clear information about repository status, connected users, and User Stories in development.
 
 ---
 

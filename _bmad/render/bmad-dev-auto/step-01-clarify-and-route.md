@@ -43,7 +43,7 @@ If the invocation prompt does not contain enough intent to identify what to impl
 ## INSTRUCTIONS
 
 1. Load context.
-   - List files in `/Users/nouredinezerrai/projets/bmad-portal/prjdocs/planning-artifacts` and `/Users/nouredinezerrai/projets/bmad-portal/prjdocs/implementation-artifacts`.
+   - List files in `/Users/nouredinezerrai/projets/bmad-portal0/prjdocs/planning-artifacts` and `/Users/nouredinezerrai/projets/bmad-portal0/prjdocs/implementation-artifacts`.
    - If the invocation prompt points to an unformatted spec or intent file, ingest that file. Do not scan for unrelated intent files.
    - **Determine context strategy.** Using the intent and the artifact listing, infer whether the current work is a story from an epic. Do not rely on filename patterns or regex — reason about the intent, the listing, and any epics file content together.
 
@@ -51,15 +51,15 @@ If the invocation prompt does not contain enough intent to identify what to impl
 
      1. Identify the epic number `{epic_num}` and (if present) the story number `{story_num}`. If you can't identify an epic number, use path B.
 
-     2. **Check for a valid cached epic context.** Look for `/Users/nouredinezerrai/projets/bmad-portal/prjdocs/implementation-artifacts/epic-<N>-context.md` (where `<N>` is the epic number). A file is **valid** when it exists, is non-empty, starts with `# Epic <N> Context:` (with the correct epic number), and no file in `/Users/nouredinezerrai/projets/bmad-portal/prjdocs/planning-artifacts` is newer.
+     2. **Check for a valid cached epic context.** Look for `/Users/nouredinezerrai/projets/bmad-portal0/prjdocs/implementation-artifacts/epic-<N>-context.md` (where `<N>` is the epic number). A file is **valid** when it exists, is non-empty, starts with `# Epic <N> Context:` (with the correct epic number), and no file in `/Users/nouredinezerrai/projets/bmad-portal0/prjdocs/planning-artifacts` is newer.
         - **If valid:** load it as the primary planning context. Do not load raw planning docs (PRD, architecture, UX, etc.).
         - **If missing, empty, or invalid:** compile it in the next bullet.
 
-     3. **Compile epic context if needed.** If no valid cached epic context was loaded, produce `/Users/nouredinezerrai/projets/bmad-portal/prjdocs/implementation-artifacts/epic-<N>-context.md` by spawning a subagent synchronously (wait for it to return in this turn) with `./compile-epic-context.md` as its prompt. Pass it the epic number, the epics file path, the `/Users/nouredinezerrai/projets/bmad-portal/prjdocs/planning-artifacts` directory, and the output path `/Users/nouredinezerrai/projets/bmad-portal/prjdocs/implementation-artifacts/epic-<N>-context.md`.
+     3. **Compile epic context if needed.** If no valid cached epic context was loaded, produce `/Users/nouredinezerrai/projets/bmad-portal0/prjdocs/implementation-artifacts/epic-<N>-context.md` by spawning a subagent synchronously (wait for it to return in this turn) with `./compile-epic-context.md` as its prompt. Pass it the epic number, the epics file path, the `/Users/nouredinezerrai/projets/bmad-portal0/prjdocs/planning-artifacts` directory, and the output path `/Users/nouredinezerrai/projets/bmad-portal0/prjdocs/implementation-artifacts/epic-<N>-context.md`.
 
      4. **Verify if compiled.** If epic context was compiled, verify the output file exists, is non-empty, and starts with `# Epic <N> Context:`. If valid, load it. If verification fails, HALT with status `blocked` and blocking condition `context compilation verification failed`.
 
-     5. **Previous story continuity.** Regardless of which context source succeeded above, scan `/Users/nouredinezerrai/projets/bmad-portal/prjdocs/implementation-artifacts` for specs from the same epic with `status: done` and a lower story number. Load the most recent one (highest story number below current). Extract its **Code Map**, **Design Notes**, **Spec Change Log**, and **task list** as continuity context for step-02 planning. If no `done` spec is found but an `in-review` spec exists for the same epic with a lower story number, HALT with status `blocked` and blocking condition `missing previous-story continuity decision`.
+     5. **Previous story continuity.** Regardless of which context source succeeded above, scan `/Users/nouredinezerrai/projets/bmad-portal0/prjdocs/implementation-artifacts` for specs from the same epic with `status: done` and a lower story number. Load the most recent one (highest story number below current). Extract its **Code Map**, **Design Notes**, **Spec Change Log**, and **task list** as continuity context for step-02 planning. If no `done` spec is found but an `in-review` spec exists for the same epic with a lower story number, HALT with status `blocked` and blocking condition `missing previous-story continuity decision`.
 
      **B) Freeform path** — if the intent is not an epic story:
      - Planning artifacts are the output of BMAD phases 1-3. Typical files include:
@@ -74,9 +74,9 @@ If the invocation prompt does not contain enough intent to identify what to impl
 4. Multi-goal warning. If the intent appears to contain multiple independently shippable goals, carry `multiple-goals` forward so step-02 can add it to `{spec_file}` frontmatter `warnings`. Do not split or block.
 5. Route:
 
-   **Folder+id dispatch:** derive a valid kebab-case slug from the entry's `title` (and `description` if needed) — the same kebab-casing convention as below, but never prefixed with `{story_id}`, since the id is already the filename's separate leading segment. Set `spec_file` = `{spec_folder}/stories/{story_id}-{slug}.md`. The id already disambiguates: no `/Users/nouredinezerrai/projets/bmad-portal/prjdocs/implementation-artifacts` fallback, no `-2`/`-3` suffixing.
+   **Folder+id dispatch:** derive a valid kebab-case slug from the entry's `title` (and `description` if needed) — the same kebab-casing convention as below, but never prefixed with `{story_id}`, since the id is already the filename's separate leading segment. Set `spec_file` = `{spec_folder}/stories/{story_id}-{slug}.md`. The id already disambiguates: no `/Users/nouredinezerrai/projets/bmad-portal0/prjdocs/implementation-artifacts` fallback, no `-2`/`-3` suffixing.
 
-   **Otherwise:** derive a valid kebab-case slug from the clarified intent. If the intent references a tracking identifier (story number, issue number, ticket ID), lead the slug with it (e.g. `3-2-digest-delivery`, `gh-47-fix-auth`). If `/Users/nouredinezerrai/projets/bmad-portal/prjdocs/implementation-artifacts/spec-{slug}.md` already exists: if its status is `draft`, treat it as the same work and resume it (set `spec_file` to that path, **EARLY EXIT** → `./step-02-plan.md`); otherwise append `-2`, `-3`, etc. Set `spec_file` = `/Users/nouredinezerrai/projets/bmad-portal/prjdocs/implementation-artifacts/spec-{slug}.md`.
+   **Otherwise:** derive a valid kebab-case slug from the clarified intent. If the intent references a tracking identifier (story number, issue number, ticket ID), lead the slug with it (e.g. `3-2-digest-delivery`, `gh-47-fix-auth`). If `/Users/nouredinezerrai/projets/bmad-portal0/prjdocs/implementation-artifacts/spec-{slug}.md` already exists: if its status is `draft`, treat it as the same work and resume it (set `spec_file` to that path, **EARLY EXIT** → `./step-02-plan.md`); otherwise append `-2`, `-3`, etc. Set `spec_file` = `/Users/nouredinezerrai/projets/bmad-portal0/prjdocs/implementation-artifacts/spec-{slug}.md`.
 
 ## NEXT
 

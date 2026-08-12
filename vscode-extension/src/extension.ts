@@ -41,6 +41,14 @@ export async function activate(context: vscode.ExtensionContext) {
 	const authStatus = isAuthenticated ? 'authenticated (using workspace JWT token or SecretStorage)' : 'not authenticated';
 	vscode.window.showInformationMessage(`BMad Portal: Authentication status: ${authStatus}`);
 
+	if (!isAuthenticated && authManager) {
+		vscode.window.showWarningMessage('BMad Portal: Not connected to the Backend Hub.', 'Login').then((selection) => {
+			if (selection === 'Login') {
+				vscode.commands.executeCommand('bmad-portal.login');
+			}
+		});
+	}
+
 	// Initialize state reporter and git poller
 	vscode.window.showInformationMessage('BMad Portal: Initializing state reporter and Git poller...');
 	stateReporter = new StateReporter(context);
@@ -122,15 +130,31 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 	);
 
-	// Add a command to trigger re-authentication
+	// Command to perform initial login (email/password exchanged for a JWT)
+	const loginCommand = vscode.commands.registerCommand(
+		'bmad-portal.login',
+		async () => {
+			if (authManager) {
+				const success = await authManager.login();
+				if (success) {
+					vscode.commands.executeCommand('setContext', 'bmadPortal.connected', true);
+					if (gitPoller) {
+						gitPoller.start();
+					}
+					if (dashboardWebviewProvider) {
+						await dashboardWebviewProvider.refreshDashboard();
+					}
+				}
+			}
+		}
+	);
+
+	// Command to trigger re-authentication (same login flow, used after expiration)
 	const reauthCommand = vscode.commands.registerCommand(
 		'bmad-portal.reauthenticate',
 		async () => {
-			vscode.window.showInformationMessage('BMad Portal: Re-authenticating...');
 			if (authManager) {
-				// In a real implementation, this would initiate the auth flow
-				// For now, we show a message
-				vscode.window.showInformationMessage('BMad Portal: Re-authentication flow would be initiated here.');
+				await authManager.login();
 			}
 		}
 	);
@@ -143,6 +167,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		openDashboardCommand,
 		disconnectCommand,
 		reconnectCommand,
+		loginCommand,
 		reauthCommand,
 		showSuggestedFeaturesCommand
 	);

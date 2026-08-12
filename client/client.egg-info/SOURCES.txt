@@ -1,0 +1,13 @@
+pyproject.toml
+agent/__init__.py
+agent/git_state.py
+agent/main.py
+agent/realtime.py
+client.egg-info/PKG-INFO
+client.egg-info/SOURCES.txt
+client.egg-info/dependency_links.txt
+client.egg-info/requires.txt
+client.egg-info/top_level.txt
+tests/test_git_state.py
+tests/test_main.py
+tests/test_realtime.py

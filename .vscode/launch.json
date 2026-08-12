@@ -1,0 +1,22 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+               
+        {
+            "name": "Python Client: Debug Agent",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/client/agent/main.py",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Python Client: Debug WebSocket",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/client/test_websocket_connection.py",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        }
+    ]
+}

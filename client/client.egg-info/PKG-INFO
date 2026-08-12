@@ -1,0 +1,6 @@
+Metadata-Version: 2.4
+Name: client
+Version: 0.1.0
+Summary: BMad Portal Client agent (CLI)
+Requires-Python: <3.14,>=3.13
+Requires-Dist: websockets<18,>=17

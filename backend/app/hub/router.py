@@ -352,6 +352,70 @@ async def post_git_state_report(
     }
 
 
+# Dashboard Data HTTP Endpoint (VS Code Extension)
+
+@router.get("/api/dashboard/data")
+def get_dashboard_data(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    """Serve the VS Code extension's sidebar dashboard snapshot for the
+    authenticated contributor, sourced from the same canonical Git state
+    record `POST /api/git-state-report` writes (AD-008: one stream, one
+    canonical read model).
+
+    Claims and risk signals have no backing data model yet, so those lists
+    are returned empty rather than fabricated.
+    """
+    git_state = get_contributor_git_state(db, user.id)
+
+    if git_state is None:
+        return {
+            "status": "absent",
+            "repoState": {
+                "syncStatus": "Idle-Offline",
+                "ahead": 0,
+                "behind": 0,
+                "hasInProgressRebase": False,
+                "hasInProgressMerge": False,
+                "hasInProgressConflict": False,
+            },
+            "claims": [],
+            "riskSignals": [],
+            "lastKnownTime": None,
+            "isStale": False,
+        }
+
+    in_progress_action = git_state["in_progress_action"]
+    ahead = git_state["ahead"]
+    behind = git_state["behind"]
+
+    if in_progress_action == "conflict":
+        sync_status = "conflict"
+    elif in_progress_action in ("rebase", "merge"):
+        sync_status = "syncing-active"
+    elif ahead or behind:
+        sync_status = "drift"
+    else:
+        sync_status = "synced"
+
+    return {
+        "status": "connected",
+        "repoState": {
+            "syncStatus": sync_status,
+            "ahead": ahead,
+            "behind": behind,
+            "hasInProgressRebase": in_progress_action == "rebase",
+            "hasInProgressMerge": in_progress_action == "merge",
+            "hasInProgressConflict": in_progress_action == "conflict",
+        },
+        "claims": [],
+        "riskSignals": [],
+        "lastKnownTime": git_state["last_updated"],
+        "isStale": git_state["is_stale"],
+    }
+
+
 # Connected Users Stats endpoints (Story 6.3)
 
 class ConnectedUserStatsOut:

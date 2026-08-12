@@ -168,8 +168,12 @@ def _process_git_state_report(message: dict, user_id: uuid.UUID):
         if not technical_identifier:
             return
 
-        # Update or create the canonical Git state record for this contributor
-        git_state = db.query(ContributorGitState).filter(ContributorGitState.user_id == user_id).first()
+        # Update or create the canonical Git state record for this contributor.
+        # user_id column is String(36) - compare/store as str, since the raw
+        # UUID's psycopg adapter binds an explicit ::UUID param that Postgres
+        # refuses to compare against a varchar column.
+        user_id_str = str(user_id)
+        git_state = db.query(ContributorGitState).filter(ContributorGitState.user_id == user_id_str).first()
 
         if git_state:
             # Update existing state
@@ -183,7 +187,7 @@ def _process_git_state_report(message: dict, user_id: uuid.UUID):
         else:
             # Create new state record
             git_state = ContributorGitState(
-                user_id=user_id,
+                user_id=user_id_str,
                 technical_identifier=technical_identifier,
                 branch=branch,
                 ahead=ahead,

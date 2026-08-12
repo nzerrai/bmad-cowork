@@ -17,7 +17,11 @@ def get_contributor_git_state(db: Session, user_id: UUID) -> dict | None:
 
     Returns the state dictionary with staleness information.
     """
-    git_state = db.query(ContributorGitState).filter(ContributorGitState.user_id == user_id).first()
+    git_state = (
+        db.query(ContributorGitState)
+        .filter(ContributorGitState.user_id == str(user_id))
+        .first()
+    )
 
     if not git_state:
         return None
@@ -61,7 +65,11 @@ def is_contributor_active(db: Session, user_id: UUID) -> bool:
 
     Returns True if the state is fresh (within 30 seconds), False otherwise.
     """
-    git_state = db.query(ContributorGitState).filter(ContributorGitState.user_id == user_id).first()
+    git_state = (
+        db.query(ContributorGitState)
+        .filter(ContributorGitState.user_id == str(user_id))
+        .first()
+    )
 
     if not git_state:
         return False

@@ -148,19 +148,67 @@ export class AuthManager {
 		);
 
 		if (result === 'Reauthenticate') {
-			// In a real implementation, this would initiate the OAuth or JWT auth flow
-			vscode.window.showInformationMessage('BMad Portal: Re-authentication flow would be initiated here.');
-			// For now, we simulate a successful re-authentication by showing a message
-			// await this.initiateAuthFlow();
+			await this.login();
 		}
 	}
 
-	// private async initiateAuthFlow(): Promise<void> {
-	// 	// Placeholder for actual authentication flow initiation
-	// 	// This would typically:
-	// 	// 1. Open a browser window to the backend auth endpoint
-	// 	// 2. Listen for a redirect with the auth code/token
-	// 	// 3. Exchange the code/token for a JWT
-	// 	// 4. Call authenticateWithToken with the received JWT
-	// }
+	/**
+	 * Prompt for email/password, exchange them for a JWT via the Backend
+	 * Hub's `POST /auth/login`, and store the resulting token.
+	 * @returns True if authentication succeeded, false if cancelled or failed
+	 */
+	public async login(): Promise<boolean> {
+		const backendHubUrl = vscode.workspace
+			.getConfiguration('bmadPortal')
+			.get<string>('backendHubUrl', 'http://localhost:8000');
+
+		const email = await vscode.window.showInputBox({
+			title: 'BMad Portal: Login',
+			prompt: 'Email',
+			placeHolder: 'you@example.com',
+			ignoreFocusOut: true,
+		});
+		if (!email) {
+			return false;
+		}
+
+		const password = await vscode.window.showInputBox({
+			title: 'BMad Portal: Login',
+			prompt: 'Password',
+			password: true,
+			ignoreFocusOut: true,
+		});
+		if (!password) {
+			return false;
+		}
+
+		try {
+			const response = await fetch(`${backendHubUrl}/auth/login`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ email, password }),
+			});
+
+			if (!response.ok) {
+				const message =
+					response.status === 401
+						? 'Invalid email or password.'
+						: `Login failed: ${response.status} ${response.statusText}`;
+				vscode.window.showErrorMessage(`BMad Portal: ${message}`);
+				return false;
+			}
+
+			const body = (await response.json()) as { access_token?: string };
+			if (!body.access_token) {
+				vscode.window.showErrorMessage('BMad Portal: Login response did not include an access token.');
+				return false;
+			}
+
+			await this.authenticateWithToken(body.access_token);
+			return true;
+		} catch (error) {
+			vscode.window.showErrorMessage(`BMad Portal: Could not reach Backend Hub at ${backendHubUrl}: ${error}`);
+			return false;
+		}
+	}
 }

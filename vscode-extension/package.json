@@ -37,6 +37,10 @@
         "title": "BMad Portal: Reconnect to Backend"
       },
       {
+        "command": "bmad-portal.login",
+        "title": "BMad Portal: Login"
+      },
+      {
         "command": "bmad-portal.reauthenticate",
         "title": "BMad Portal: Reauthenticate"
       },

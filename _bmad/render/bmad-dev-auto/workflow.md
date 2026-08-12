@@ -8,7 +8,7 @@
 
 To HALT with a final status and optional blocking condition:
 
-1. **Folder+id dispatch** (`{spec_folder}` and `{story_id}` are set): the write-back always lands at the id-keyed story spec. The `/Users/nouredinezerrai/projets/bmad-portal/prjdocs/implementation-artifacts` fallback in step 2 below is never used in this mode, even for halts before planning starts.
+1. **Folder+id dispatch** (`{spec_folder}` and `{story_id}` are set): the write-back always lands at the id-keyed story spec. The `/Users/nouredinezerrai/projets/bmad-portal0/prjdocs/implementation-artifacts` fallback in step 2 below is never used in this mode, even for halts before planning starts.
    - If `{spec_file}` is still empty, resolve it now:
      - **Entry not resolved** (`stories.yaml` is missing/unparseable, or `{story_id}` has no matching entry): use the fixed slug segment `unresolved`: `{spec_file}` = `{spec_folder}/stories/{story_id}-unresolved.md`.
      - **Ambiguous on-disk match** (the halt is `ambiguous story file match` — more than one file already matches `{spec_folder}/stories/{story_id}-*.md`): use the fixed slug segment `ambiguous` instead of deriving from the title, so the write-back neither creates a third title-derived candidate nor risks silently landing on one of the existing ambiguous files: `{spec_file}` = `{spec_folder}/stories/{story_id}-ambiguous.md`.
@@ -29,7 +29,7 @@ To HALT with a final status and optional blocking condition:
      ```
 2. **Otherwise:**
    - If `{spec_file}` is known and exists, update `status` in frontmatter and append missing result details under `## Auto Run Result`.
-   - If `{spec_file}` is unknown or missing, create `/Users/nouredinezerrai/projets/bmad-portal/prjdocs/implementation-artifacts/bmad-dev-auto-result-<slug-or-timestamp>.md` with:
+   - If `{spec_file}` is unknown or missing, create `/Users/nouredinezerrai/projets/bmad-portal0/prjdocs/implementation-artifacts/bmad-dev-auto-result-<slug-or-timestamp>.md` with:
      ```markdown
      ---
      status: <final status>

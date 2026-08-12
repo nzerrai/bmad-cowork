@@ -1,0 +1,10 @@
+{
+  "bmadPortal.backendHubUrl": "http://localhost:8000",
+  "bmadPortal.repoPollingIntervalSec": 300,
+  "bmadPortal.authMethod": "jwt",
+  "bmadPortal.dashboardDisplayMode": "sidebarView",
+  "bmadPortal.enableEventDrivenPolling": true,
+  "bmadPortal.dashboardRefreshIntervalSec": 60,
+  "bmadPortal.claimsSuggestionsEnabled": true,
+  "bmadPortal.jwtToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxNmEwMDQ0Ny01M2RhLTRhMDItYWQzYi1hYTgxNDdkNTU4MzIiLCJyb2xlIjoiZGV2ZWxvcGVyIiwiaWF0IjoxNzg2NTQ2MzUzLCJleHAiOjIxMDE5MDYzNTN9.0WfmqqKrsdQRvwxFh7sRBIsOJDILphcRmnn0NVMk8H8"
+}
