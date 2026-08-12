@@ -10,6 +10,7 @@ import React, { createContext, useContext, useState, ReactNode } from "react";
 import { Toast, ToastNotification, ToastId } from "./toast";
 
 interface ToastContextType {
+  toasts: ToastNotification[];
   addToast: (toast: Omit<ToastNotification, "id"> & { id?: ToastId }) => ToastId;
   removeToast: (id: ToastId) => void;
 }
@@ -34,25 +35,46 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <ToastContext.Provider value={{ addToast, removeToast }}>
+    <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
       {children}
-      <div
-        className="fixed top-4 right-4 z-50 flex flex-col gap-3 max-w-sm"
-        aria-live="polite"
-        aria-atomic="false"
-      >
-        {toasts.map((toast) => (
-          <Toast
-            key={toast.id}
-            variant={toast.variant}
-            title={toast.title}
-            message={toast.message}
-            onClose={() => removeToast(toast.id)}
-          />
-        ))}
-      </div>
     </ToastContext.Provider>
   );
+}
+
+/** Toast Container Component
+ *
+ * Renders the toast notifications in a fixed position at the top-right corner.
+ * This should be placed inside the <body> element.
+ */
+export function ToastContainer() {
+  const { toasts, removeToast } = useToastContext();
+
+  return (
+    <div
+      className="fixed top-4 right-4 z-50 flex flex-col gap-3 max-w-sm"
+      aria-live="polite"
+      aria-atomic="false"
+    >
+      {toasts.map((toast) => (
+        <Toast
+          key={toast.id}
+          variant={toast.variant}
+          title={toast.title}
+          message={toast.message}
+          onClose={() => removeToast(toast.id)}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** Custom hook to access toast context */
+function useToastContext() {
+  const context = useContext(ToastContext);
+  if (context === undefined) {
+    throw new Error("useToastContext must be used within a ToastProvider");
+  }
+  return context;
 }
 
 export function useToast() {
@@ -60,5 +82,8 @@ export function useToast() {
   if (context === undefined) {
     throw new Error("useToast must be used within a ToastProvider");
   }
-  return context;
+  return {
+    addToast: context.addToast,
+    removeToast: context.removeToast,
+  };
 }

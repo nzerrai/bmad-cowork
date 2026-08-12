@@ -246,6 +246,10 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
             elif isinstance(message, dict) and message.get("type") == "client_git_state_report":
                 # Process git state report in threadpool to avoid blocking event loop
                 # Implements AD-008: one stream, one canonical read model
+                technical_identifier = message.get("technical_identifier")
+                if technical_identifier:
+                    # Record git state report for connection tracking
+                    manager.record_git_state_report(user.id, technical_identifier)
                 await run_in_threadpool(_process_git_state_report, message, user.id)
     except WebSocketDisconnect:
         pass

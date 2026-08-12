@@ -13,6 +13,8 @@ No DB table, no Alembic migration: presence/lease state is Epic 3's
 
 import time
 import uuid
+from collections import defaultdict
+from typing import Optional
 
 from fastapi import WebSocket
 
@@ -23,10 +25,23 @@ class ConnectionManager:
     def __init__(self) -> None:
         self._connections: dict[uuid.UUID, set[WebSocket]] = {}
         self._last_heartbeat: dict[WebSocket, float] = {}
+        # Connection tracking for connected users stats (US 6.3)
+        self._user_connections: dict[uuid.UUID, dict] = {}
 
     async def connect(self, user_id: uuid.UUID, websocket: WebSocket) -> None:
         """Register an already-accepted connection for `user_id`."""
         self._connections.setdefault(user_id, set()).add(websocket)
+        # Initialize connection tracking for this user
+        if user_id not in self._user_connections:
+            self._user_connections[user_id] = {
+                'user_id': str(user_id),
+                'repository': None,
+                'heartbeat_count': 0,
+                'claim_events': 0,
+                'sync_events': 0,
+                'conflict_events': 0,
+                'connection_source': 'websocket',
+            }
 
     async def disconnect(self, user_id: uuid.UUID, websocket: WebSocket) -> None:
         """Deregister a connection; drop the `user_id` key once its set is empty."""
@@ -35,6 +50,8 @@ class ConnectionManager:
             connections.discard(websocket)
             if not connections:
                 del self._connections[user_id]
+                # Clean up tracking data when no connections remain
+                self._user_connections.pop(user_id, None)
         self._last_heartbeat.pop(websocket, None)
 
     async def broadcast(self, message: dict, *, exclude: WebSocket | None = None) -> None:
@@ -67,3 +84,63 @@ class ConnectionManager:
         which will read this bookkeeping once leases exist).
         """
         self._last_heartbeat[websocket] = time.monotonic()
+        # Increment heartbeat count for connected users stats
+        if user_id in self._user_connections:
+            self._user_connections[user_id]['heartbeat_count'] += 1
+
+    def record_git_state_report(self, user_id: uuid.UUID, technical_identifier: str) -> None:
+        """Record a git state report and update the user's repository."""
+        # Initialize tracking if user is not already tracked (HTTP REST connection)
+        if user_id not in self._user_connections:
+            self._user_connections[user_id] = {
+                'user_id': str(user_id),
+                'repository': None,
+                'heartbeat_count': 0,
+                'claim_events': 0,
+                'sync_events': 0,
+                'conflict_events': 0,
+                'connection_source': 'http_rest',
+            }
+
+        if user_id in self._user_connections:
+            self._user_connections[user_id]['repository'] = technical_identifier
+            self._user_connections[user_id]['sync_events'] += 1
+            # Track HTTP REST connection source (VS Code extension)
+            if self._user_connections[user_id]['connection_source'] != 'http_rest':
+                self._user_connections[user_id]['connection_source'] = 'http_rest'
+
+    def record_claim_event(self, user_id: uuid.UUID) -> None:
+        """Record a claim event for the user."""
+        if user_id in self._user_connections:
+            self._user_connections[user_id]['claim_events'] += 1
+
+    def record_conflict_event(self, user_id: uuid.UUID) -> None:
+        """Record a conflict event for the user."""
+        if user_id in self._user_connections:
+            self._user_connections[user_id]['conflict_events'] += 1
+
+    def get_connected_users_stats(self) -> list[dict]:
+        """Get connected users statistics sorted by repository with request counts by type."""
+        stats = []
+        for user_data in self._user_connections.values():
+            total_requests = (
+                user_data['heartbeat_count'] +
+                user_data['claim_events'] +
+                user_data['sync_events'] +
+                user_data['conflict_events']
+            )
+            stats.append({
+                'user_id': user_data['user_id'],
+                'user_email': 'unknown',  # Email is not available in the connection manager
+                'repository': user_data['repository'] or 'unknown',
+                'heartbeat_count': user_data['heartbeat_count'],
+                'claim_events': user_data['claim_events'],
+                'sync_events': user_data['sync_events'],
+                'conflict_events': user_data['conflict_events'],
+                'total_requests': total_requests,
+                'connection_source': user_data.get('connection_source', 'unknown'),
+            })
+
+        # Sort by repository
+        stats.sort(key=lambda x: x['repository'])
+        return stats

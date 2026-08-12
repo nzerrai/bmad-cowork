@@ -1,10 +1,16 @@
 ---
 baseline_commit: 5bad813b2caff6a86294f5437d6b36dbba68cdab
+status: done
 ---
 
 # Story 2.3: Zero-Setup Onboarding & Application Identity
 
-Status: in-progress
+Status: done
+
+## Auto Run Result
+
+Status: done
+Blocking condition: none
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

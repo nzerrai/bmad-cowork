@@ -13,8 +13,14 @@ interface WebSocketNotificationProviderProps {
 }
 
 export function WebSocketNotificationProvider({ children }: WebSocketNotificationProviderProps) {
-  const { addToast } = useToast();
+  const toastStateRef = useRef<{ addToast: any } | null>(null);
   const connectionRef = useRef<RealtimeConnection | null>(null);
+
+  // Store addToast in a ref to avoid recreation on every render
+  const { addToast } = useToast();
+  useEffect(() => {
+    toastStateRef.current = { addToast };
+  }, [addToast]);
 
   useEffect(() => {
     if (!connectionRef.current) {
@@ -24,16 +30,19 @@ export function WebSocketNotificationProvider({ children }: WebSocketNotificatio
         },
         (event: NotificationEvent) => {
           // Handle notification events and display toast notifications
+          const currentAddToast = toastStateRef.current?.addToast;
+          if (!currentAddToast) return;
+
           switch (event.type) {
             case "claim_event":
               if (event.action === "claimed") {
-                addToast({
+                currentAddToast({
                   variant: "success",
                   title: "Story Claimed",
                   message: `Story ${event.storyId} claimed by user ${event.userId}`,
                 });
               } else {
-                addToast({
+                currentAddToast({
                   variant: "info",
                   title: "Story Released",
                   message: `Story ${event.storyId} release by user ${event.userId}`,
@@ -41,7 +50,7 @@ export function WebSocketNotificationProvider({ children }: WebSocketNotificatio
               }
               break;
             case "claim_conflict":
-              addToast({
+              currentAddToast({
                 variant: "warning",
                 title: "Claim Conflict Detected",
                 message: `Conflict detected on story ${event.storyId}. Re-sync required.`,
@@ -49,7 +58,7 @@ export function WebSocketNotificationProvider({ children }: WebSocketNotificatio
               break;
             case "sync_complete":
               const syncTarget = event.storyId || event.repository || "repository";
-              addToast({
+              currentAddToast({
                 variant: "success",
                 title: "Sync Completed",
                 message: `Sync completed for ${syncTarget}`,
@@ -72,7 +81,8 @@ export function WebSocketNotificationProvider({ children }: WebSocketNotificatio
         connectionRef.current = null;
       }
     };
-  }, [addToast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return <>{children}</>;
 }

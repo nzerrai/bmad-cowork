@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { authFetch, getToken } from "@/lib/auth";
 import { GitReposProjectConfig } from "./git-repos-config/GitReposProjectConfig";
 import { SkeletonFormField } from "@/components/ui/skeleton/form-field";
+import { SkeletonTableRow, SkeletonTableHeader } from "@/components/ui/skeleton/table-row";
 import { UserRoleManagement } from "./user-role-management/UserRoleManagement";
+import { useToast } from "@/app/components/ui/toast-provider";
 
 type Role = "developer" | "product_manager" | "architect_tech_lead" | "ux_designer" | "admin";
 
@@ -51,6 +53,10 @@ export default function SystemAdministrationPage() {
   const [config, setConfig] = useState<GitReposConfig | null>(null);
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [isUsersLoading, setIsUsersLoading] = useState(true);
+  const [connectedUsersStats, setConnectedUsersStats] = useState<any[]>([]);
+  const [isConnectedUsersLoading, setIsConnectedUsersLoading] = useState(true);
+  const { addToast } = useToast();
+  const reconnectingToastShownRef = useRef(false);
 
   useEffect(() => {
     const token = getToken();
@@ -75,6 +81,26 @@ export default function SystemAdministrationPage() {
   const fetchConfigAndUsers = async (token: string, role: Role) => {
     setIsLoading(true);
     setIsUsersLoading(true);
+    setIsConnectedUsersLoading(true);
+
+    // Helper to handle backend unreachable
+    const handleBackendUnreachable = () => {
+      if (!reconnectingToastShownRef.current) {
+        reconnectingToastShownRef.current = true;
+        addToast({
+          variant: "warning",
+          title: "Reconnecting…",
+          message: "Unable to reach the backend. Attempting to reconnect.",
+        });
+      }
+      setIsBackendReachable(false);
+    };
+
+    // Helper to handle backend reachable
+    const handleBackendReachable = () => {
+      reconnectingToastShownRef.current = false;
+      setIsBackendReachable(true);
+    };
 
     // Fetch configuration data
     try {
@@ -82,13 +108,14 @@ export default function SystemAdministrationPage() {
       if (configResponse.ok) {
         const data = await configResponse.json();
         setConfig(data);
+        handleBackendReachable();
       } else if (configResponse.status === 503 || configResponse.status === 502 || configResponse.status === 504) {
-        // Backend unreachable
-        setIsBackendReachable(false);
+        handleBackendUnreachable();
+      } else {
+        handleBackendReachable();
       }
     } catch {
-      // Backend unreachable
-      setIsBackendReachable(false);
+      handleBackendUnreachable();
     }
 
     // Fetch users
@@ -97,17 +124,34 @@ export default function SystemAdministrationPage() {
       if (usersResponse.ok) {
         const data = await usersResponse.json();
         setUsers(data);
-        setIsBackendReachable(true);
+        handleBackendReachable();
       } else if (usersResponse.status === 503 || usersResponse.status === 502 || usersResponse.status === 504) {
-        // Backend unreachable
-        setIsBackendReachable(false);
+        handleBackendUnreachable();
+      } else {
+        handleBackendReachable();
       }
     } catch {
-      // Backend unreachable
-      setIsBackendReachable(false);
+      handleBackendUnreachable();
+    }
+
+    // Fetch connected users stats
+    try {
+      const statsResponse = await authFetch("/hub/admin/connected-users-stats");
+      if (statsResponse.ok) {
+        const data = await statsResponse.json();
+        setConnectedUsersStats(data.users || []);
+        handleBackendReachable();
+      } else if (statsResponse.status === 503 || statsResponse.status === 502 || statsResponse.status === 504) {
+        handleBackendUnreachable();
+      } else {
+        handleBackendReachable();
+      }
+    } catch {
+      handleBackendUnreachable();
     } finally {
       setIsLoading(false);
       setIsUsersLoading(false);
+      setIsConnectedUsersLoading(false);
     }
   };
 
@@ -176,7 +220,7 @@ export default function SystemAdministrationPage() {
     }
   };
 
-  if (isLoading || isUsersLoading) {
+  if (isLoading || isUsersLoading || isConnectedUsersLoading) {
     return (
       <div className="flex flex-1 flex-col">
         <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-6 py-10">
@@ -204,6 +248,25 @@ export default function SystemAdministrationPage() {
             <div className="flex flex-col gap-4">
               <SkeletonFormField label="User Email" />
               <SkeletonFormField label="Role" />
+            </div>
+          </section>
+
+          <section className="flex flex-col gap-6 rounded-md border border-border bg-surface px-4 py-6">
+            <h2 className="text-lg font-bold text-foreground">Connected Users Dashboard</h2>
+
+            <div className="overflow-x-auto">
+              <table
+                className="min-w-full divide-y divide-border"
+                role="table"
+                aria-label="Connected Users Dashboard"
+              >
+                <SkeletonTableHeader />
+                <tbody className="divide-y divide-border">
+                  <SkeletonTableRow columns={9} />
+                  <SkeletonTableRow columns={9} />
+                  <SkeletonTableRow columns={9} />
+                </tbody>
+              </table>
             </div>
           </section>
         </main>
@@ -237,6 +300,119 @@ export default function SystemAdministrationPage() {
           isBackendReachable={isBackendReachable}
           onSaveUserRole={handleSaveUserRole}
         />
+
+        <section className="flex flex-col gap-6 rounded-md border border-border bg-surface px-4 py-6">
+          <div className="flex flex-col gap-2">
+            <h2 className="text-lg font-bold text-foreground">Connected Users Dashboard</h2>
+            <p className="text-sm text-text-secondary">
+              List of connected users sorted by repository, with request counts by type
+            </p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table
+              className="min-w-full divide-y divide-border"
+              role="table"
+              aria-label="Connected Users Dashboard"
+            >
+              <thead className="bg-surface-elevated">
+                <tr>
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-left text-sm font-semibold text-text-secondary"
+                  >
+                    User Email
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-left text-sm font-semibold text-text-secondary"
+                  >
+                    User ID
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-left text-sm font-semibold text-text-secondary"
+                  >
+                    Repository
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-left text-sm font-semibold text-text-secondary"
+                  >
+                    Heartbeat Count
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-left text-sm font-semibold text-text-secondary"
+                  >
+                    Claim Events
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-left text-sm font-semibold text-text-secondary"
+                  >
+                    Sync Events
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-left text-sm font-semibold text-text-secondary"
+                  >
+                    Conflict Events
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-left text-sm font-semibold text-text-secondary"
+                  >
+                    Total Requests
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-left text-sm font-semibold text-text-secondary"
+                  >
+                    Connection Source
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {connectedUsersStats.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="px-4 py-3 text-sm text-text-secondary text-center">
+                      No connected users found.
+                    </td>
+                  </tr>
+                ) : (
+                  connectedUsersStats.map((stat: any, index: number) => (
+                    <tr key={stat.user_id || index} className="hover:bg-surface-elevated/50">
+                      <td className="px-4 py-3 text-sm text-foreground">{stat.user_email}</td>
+                      <td className="px-4 py-3 text-sm text-text-secondary">{stat.user_id}</td>
+                      <td className="px-4 py-3 text-sm text-text-secondary">{stat.repository}</td>
+                      <td className="px-4 py-3 text-sm text-text-secondary tabular-nums">
+                        {stat.heartbeat_count || 0}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-text-secondary tabular-nums">
+                        {stat.claim_events || 0}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-text-secondary tabular-nums">
+                        {stat.sync_events || 0}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-text-secondary tabular-nums">
+                        {stat.conflict_events || 0}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-text-secondary tabular-nums">
+                        {stat.total_requests || 0}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-text-secondary">
+                        {stat.connection_source === 'http_rest' ? 'VS Code Extension' :
+                         stat.connection_source === 'websocket' ? 'WebSocket' :
+                         stat.connection_source || 'Unknown'}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </main>
     </div>
   );

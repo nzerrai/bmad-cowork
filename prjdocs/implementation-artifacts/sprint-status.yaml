@@ -42,7 +42,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-08-02
-last_updated: 2026-08-10
+last_updated: 2026-08-12
 project: tarmacacademy
 project_key: NOKEY
 tracking_system: file-system
@@ -63,7 +63,7 @@ development_status:
   epic-1-retrospective: optional
 
   # Epic 2: Distributed Sync & Zero-Setup Onboarding
-  epic-2: in-progress
+  epic-2: done
   2-1-real-time-websocket-communication-pillar: done
   2-2-local-repo-scan-and-git-state-detection: done
   2-3-zero-setup-onboarding-and-application-identity: done
@@ -99,6 +99,7 @@ development_status:
   epic-6: in-progress
   6-1-git-repos-project-configuration: done
   6-2-user-and-role-management: done
+  6-3-admin-connected-users-and-request-stats: review
   epic-6-retrospective: optional
 
   # Epic 7: VS Code Plugin - IDE Integration & Dashboard Display

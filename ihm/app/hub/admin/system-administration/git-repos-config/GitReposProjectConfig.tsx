@@ -48,15 +48,10 @@ export function GitReposProjectConfig({
   useEffect(() => {
     if (!isBackendReachable) {
       setShowReconnectingToast(true);
-      addToast({
-        variant: "warning",
-        title: "Reconnecting…",
-        message: "Backend is unreachable. Save actions are disabled.",
-      });
     } else {
       setShowReconnectingToast(false);
     }
-  }, [isBackendReachable, addToast]);
+  }, [isBackendReachable]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();

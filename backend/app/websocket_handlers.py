@@ -38,6 +38,8 @@ class WebSocketHandlers:
 
         Returns True if the lease was extended, False otherwise.
         """
+        # Record claim event for connection tracking
+        self.connection_manager.record_claim_event(user_id)
         return self.lease_service.extend_lease(story_id, user_id)
 
     def check_and_expire_stale_leases(self) -> list[str]:
@@ -46,3 +48,11 @@ class WebSocketHandlers:
         Returns the list of story_ids that were expired.
         """
         return self.lease_service.cleanup_expired_leases()
+
+    def record_git_state_report(self, user_id: uuid.UUID, technical_identifier: str) -> None:
+        """Record a git state report for connection tracking."""
+        self.connection_manager.record_git_state_report(user_id, technical_identifier)
+
+    def record_conflict_event(self, user_id: uuid.UUID) -> None:
+        """Record a conflict event for connection tracking."""
+        self.connection_manager.record_conflict_event(user_id)
