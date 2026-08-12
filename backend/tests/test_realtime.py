@@ -9,6 +9,7 @@ import asyncio
 import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import jwt
 import pytest
@@ -206,6 +207,52 @@ def test_unknown_and_missing_type_messages_do_not_crash_connection() -> None:
         ws.send_json({"no_type_key": True})
         # Connection must still be usable after ignoring both.
         ws.send_json({"type": "heartbeat"})
+
+
+def test_client_identity_report_returns_space_joined(monkeypatch) -> None:
+    """`client_identity_report` -> `_process_client_identity` now depends on
+    real `git`/network access via `check_repo_access` (Story 6.1 revision:
+    see spec-6-1-...-2.md) -- mock it so this stays deterministic and
+    offline while still exercising the WebSocket -> threadpool -> service
+    wiring end to end."""
+    token, _ = _register_and_login()
+    identifier = f"https://github.com/org/repo-{uuid.uuid4().hex}.git"
+
+    monkeypatch.setattr(router_module.hub_service, "check_repo_access", lambda db, ident: True)
+
+    with client.websocket_connect(f"/ws?token={token}") as ws:
+        ws.send_json({"type": "client_identity_report", "technical_identifier": identifier})
+        response = ws.receive_json()
+
+    assert response["type"] == "space_joined"
+    assert response["technical_identifier"] == identifier
+    assert response["status"] == "active"
+
+
+def test_client_identity_report_rejects_malicious_identifier(monkeypatch) -> None:
+    """Security regression: a crafted identifier (git's `ext::` remote-
+    helper syntax, which can execute an arbitrary command) must never reach
+    a real subprocess via this path, even from an authenticated WebSocket
+    client -- unlike the admin `POST /hub/admin/repos` endpoint, this path
+    never called `is_valid_technical_identifier` before handing the client-
+    supplied identifier to `check_repo_access`. The fix moved that format
+    validation *inside* `check_repo_access` itself, so every caller is
+    protected at the one choke point, not just the admin endpoint."""
+    token, _ = _register_and_login()
+    malicious_identifier = f"ext::sh -c touch /tmp/pwned-via-ws-{uuid.uuid4().hex}"
+
+    mock_run = MagicMock()
+    monkeypatch.setattr(router_module.hub_service.subprocess, "run", mock_run)
+
+    with client.websocket_connect(f"/ws?token={token}") as ws:
+        ws.send_json(
+            {"type": "client_identity_report", "technical_identifier": malicious_identifier}
+        )
+        response = ws.receive_json()
+
+    assert response["type"] == "space_joined"
+    assert response["status"] == "pending"
+    mock_run.assert_not_called()
 
 
 def test_connection_manager_broadcast_skips_dead_connection() -> None:

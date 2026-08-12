@@ -117,3 +117,13 @@
 - source_spec: `spec-7-1-vscode-extension-skeleton-and-packagejson-setup.md`
   summary: No `LICENSE`/`LICENSE.md`/`LICENSE.txt` file exists anywhere in the repository, which `vsce package` now surfaces as an explicit (non-fatal) warning on every `vscode-extension` packaging run.
   evidence: Blind-hunter review flagged the warning; confirmed by directly running `npm run package` in `vscode-extension/`, which prints `WARNING LICENSE, LICENSE.md, or LICENSE.txt not found` before packaging successfully. Pre-existing repo-wide gap (not introduced by this story), only made visibly actionable because this is the first tier whose build tooling checks for one.
+
+## Deferred from: code review of spec-6-1-git-repos-project-configuration-2 (2026-08-12)
+
+- source_spec: `spec-6-1-git-repos-project-configuration-2.md`
+  summary: `.git`-substring stripping (`identifier.replace(".git", "")`) matches the literal substring anywhere in a URL, not just a trailing suffix, and this pattern is now duplicated across four near-identical parsing functions (`extract_short_name`, `generate_access_grant_link`, `check_repo_access`'s old form, and the new `is_valid_technical_identifier`) in `backend/app/hub/service.py`.
+  evidence: Blind-hunter and edge-case-hunter reviews both flagged this; pre-existing bug (predates this story) propagated into new code rather than fixed. Low real-world impact (requires a repo path containing the literal substring `.git` mid-string, e.g. `org/awesome.gitbook`), but worth a dedicated pass to centralize git-remote-URL parsing into one function instead of four independent copies.
+
+- source_spec: `spec-6-1-git-repos-project-configuration-2.md`
+  summary: The new Alembic migration (`0a2ae1447e3a_add_space_origin_and_credential`) drops `git_repos_config` outright with no data-preservation path, and its `downgrade()` recreates an empty table rather than restoring data — acceptable now since no deployed environment holds real config data yet, but the pattern (destructive migration, non-functional downgrade) shouldn't repeat once this system has real users.
+  evidence: Blind-hunter review flagged both the silent data loss and the cosmetic-only downgrade; confirmed by reading the migration file. No production/staging environment exists yet for this pre-launch project, so actual data loss risk today is zero, but the convention is worth tightening before the next destructive migration on a live system.

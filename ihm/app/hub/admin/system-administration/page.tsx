@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { authFetch, getToken } from "@/lib/auth";
-import { GitReposProjectConfig } from "./git-repos-config/GitReposProjectConfig";
+import { GitReposProjectConfig, RepoOut } from "./git-repos-config/GitReposProjectConfig";
 import { SkeletonFormField } from "@/components/ui/skeleton/form-field";
 import { SkeletonTableRow, SkeletonTableHeader } from "@/components/ui/skeleton/table-row";
 import { UserRoleManagement } from "./user-role-management/UserRoleManagement";
@@ -15,13 +15,6 @@ interface UserSession {
   id: string;
   email: string;
   role: Role;
-}
-
-interface GitReposConfig {
-  project_name: string;
-  primary_repo_url: string;
-  backup_repo_url: string | null;
-  webhook_url: string | null;
 }
 
 interface UserWithRole {
@@ -50,7 +43,7 @@ export default function SystemAdministrationPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [isBackendReachable, setIsBackendReachable] = useState(true);
-  const [config, setConfig] = useState<GitReposConfig | null>(null);
+  const [repos, setRepos] = useState<RepoOut[]>([]);
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [isUsersLoading, setIsUsersLoading] = useState(true);
   const [connectedUsersStats, setConnectedUsersStats] = useState<any[]>([]);
@@ -102,14 +95,14 @@ export default function SystemAdministrationPage() {
       setIsBackendReachable(true);
     };
 
-    // Fetch configuration data
+    // Fetch connected Git repos (Space list, discovered + manual)
     try {
-      const configResponse = await authFetch("/hub/git-repos-config");
-      if (configResponse.ok) {
-        const data = await configResponse.json();
-        setConfig(data);
+      const reposResponse = await authFetch("/hub/admin/repos");
+      if (reposResponse.ok) {
+        const data = await reposResponse.json();
+        setRepos(data.repos || []);
         handleBackendReachable();
-      } else if (configResponse.status === 503 || configResponse.status === 502 || configResponse.status === 504) {
+      } else if (reposResponse.status === 503 || reposResponse.status === 502 || reposResponse.status === 504) {
         handleBackendUnreachable();
       } else {
         handleBackendReachable();
@@ -155,30 +148,88 @@ export default function SystemAdministrationPage() {
     }
   };
 
-  const handleSaveConfig = async (newConfig: GitReposConfig) => {
+  const handleAddRepo = async (technicalIdentifier: string) => {
     if (!isBackendReachable) {
-      return; // Save actions are disabled when Backend is unreachable
+      throw new Error("Backend unreachable");
     }
 
     const token = getToken();
     if (!token) return;
 
     try {
-      const response = await authFetch("/hub/git-repos-config", {
+      const response = await authFetch("/hub/admin/repos", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(newConfig),
+        body: JSON.stringify({ technical_identifier: technicalIdentifier }),
       });
 
       if (response.ok) {
-        setConfig(newConfig);
+        const newRepo: RepoOut = await response.json();
+        setRepos((prev) => {
+          // The Backend returns the existing `Space` (same id) when the
+          // identifier was already known (discovered or previously added
+          // manually) -- replace that row in place instead of appending a
+          // duplicate with a colliding React key.
+          const existingIndex = prev.findIndex((r) => r.id === newRepo.id);
+          if (existingIndex === -1) return [...prev, newRepo];
+          const next = [...prev];
+          next[existingIndex] = newRepo;
+          return next;
+        });
       } else if (response.status === 503 || response.status === 502 || response.status === 504) {
         setIsBackendReachable(false);
+        throw new Error("Backend unreachable");
+      } else {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.detail || "Impossible d'ajouter le dépôt.");
       }
-    } catch {
-      setIsBackendReachable(false);
+    } catch (error) {
+      if (error instanceof Error && error.message === "Backend unreachable") {
+        setIsBackendReachable(false);
+      }
+      throw error;
+    }
+  };
+
+  const handleAuthorizeRepo = async (repoId: string, credential: string) => {
+    if (!isBackendReachable) {
+      throw new Error("Backend unreachable");
+    }
+
+    const token = getToken();
+    if (!token) return;
+
+    try {
+      const response = await authFetch(`/hub/admin/repos/${repoId}/credential`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ credential }),
+      });
+
+      if (response.ok) {
+        const updatedRepo: RepoOut = await response.json();
+        setRepos((prev) => prev.map((r) => (r.id === updatedRepo.id ? updatedRepo : r)));
+        if (updatedRepo.status !== "active") {
+          // Access still refused with this credential -- surface it as a
+          // failure so the inline form shows the error message, even
+          // though the PATCH itself succeeded (credential was stored).
+          throw new Error("Access still refused");
+        }
+      } else if (response.status === 503 || response.status === 502 || response.status === 504) {
+        setIsBackendReachable(false);
+        throw new Error("Backend unreachable");
+      } else {
+        throw new Error("Failed to authorize repository access");
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message === "Backend unreachable") {
+        setIsBackendReachable(false);
+      }
+      throw error;
     }
   };
 
@@ -234,12 +285,16 @@ export default function SystemAdministrationPage() {
           <section className="flex flex-col gap-6 rounded-md border border-border bg-surface px-4 py-6">
             <h2 className="text-lg font-bold text-foreground">Git/Repos Project Configuration</h2>
 
-            <div className="flex flex-col gap-4">
-              <SkeletonFormField label="Project Name" />
-              <SkeletonFormField label="Primary Repository URL" />
-              <SkeletonFormField label="Backup Repository URL (Optional)" />
-              <SkeletonFormField label="Webhook URL (Optional)" />
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-border" role="table" aria-label="Dépôts Git connectés">
+                <SkeletonTableHeader columns={4} />
+                <tbody className="divide-y divide-border">
+                  <SkeletonTableRow columns={4} />
+                  <SkeletonTableRow columns={4} />
+                </tbody>
+              </table>
             </div>
+            <SkeletonFormField label="Ajouter un dépôt" />
           </section>
 
           <section className="flex flex-col gap-6 rounded-md border border-border bg-surface px-4 py-6">
@@ -288,9 +343,10 @@ export default function SystemAdministrationPage() {
           <h2 className="text-lg font-bold text-foreground">Git/Repos Project Configuration</h2>
 
           <GitReposProjectConfig
-            config={config}
+            repos={repos}
             isBackendReachable={isBackendReachable}
-            onSave={handleSaveConfig}
+            onAddRepo={handleAddRepo}
+            onAuthorizeRepo={handleAuthorizeRepo}
           />
         </section>
 

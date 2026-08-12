@@ -1,13 +1,23 @@
 """Space provisioning service for zero-setup onboarding and application identity."""
 
+import os
 import re
+import stat
+import subprocess
+import tempfile
 from urllib.parse import urlparse
 
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.hub.credentials import InvalidToken, decrypt_credential
 from app.hub.models import HubStatus, Space
+
+# `git ls-remote` timeout, per Design Notes ("a few-second timeout") -- long
+# enough for a real remote round-trip, short enough not to stall the
+# threadpool worker on an unreachable host.
+_GIT_LS_REMOTE_TIMEOUT_SECONDS = 6
 
 
 def extract_short_name(technical_identifier: str) -> str:
@@ -49,6 +59,28 @@ def extract_short_name(technical_identifier: str) -> str:
         return fallback_match.group(1)
 
     return "unknown_repo"
+
+
+def is_valid_technical_identifier(technical_identifier: str) -> bool:
+    """Format-validates a technical identifier (Git remote URL) shape only --
+    `git@host:org/repo` (SSH) or `https://host/org/repo` (HTTPS). Does not
+    verify reachability; that's `check_repo_access`'s job. Used to reject a
+    malformed URL with 400 before a `Space` is even created (ADMIN_ADD_MANUAL_REPO).
+    """
+    if not technical_identifier or not isinstance(technical_identifier, str):
+        return False
+
+    identifier = technical_identifier.replace(".git", "")
+
+    git_ssh_pattern = r"^[a-zA-Z0-9_-]+@[a-zA-Z0-9.-]+:(?:\d+:)?([^/]+)/(.+)$"
+    if re.match(git_ssh_pattern, identifier):
+        return True
+
+    https_pattern = r"^https?://[a-zA-Z0-9.-]+/([^/]+)/(.+)$"
+    if re.match(https_pattern, identifier):
+        return True
+
+    return False
 
 
 def detect_git_provider(technical_identifier: str) -> str:
@@ -126,12 +158,19 @@ def generate_access_grant_link(provider: str, technical_identifier: str) -> str:
     return "Veuillez accorder l'accès en lecture au dépôt depuis les paramètres de votre fournisseur Git."
 
 
-def get_or_create_space(db: Session, technical_identifier: str) -> Space:
+def get_or_create_space(
+    db: Session, technical_identifier: str, origin: str = "discovered"
+) -> Space:
     """Atomic upsert keyed on the technical identifier.
 
     Uses PostgreSQL's INSERT ... ON CONFLICT DO NOTHING to ensure concurrent
     first-contact reports from multiple Clients for the same identity resolve
     to exactly one space, never a race.
+
+    `origin` distinguishes a Client-discovered space (default, Epic 2
+    zero-setup onboarding) from one an Admin adds manually (`"manual"`) --
+    both live in the same `Space` table, never a second identity scheme.
+    Ignored if the space already exists (its original origin is preserved).
 
     Returns the Space (either existing or newly created).
     """
@@ -159,6 +198,7 @@ def get_or_create_space(db: Session, technical_identifier: str) -> Space:
         technical_identifier=technical_identifier,
         short_name=short_name,
         status=status,
+        origin=origin,
     )
 
     # On conflict, do nothing (we want to preserve the existing space)
@@ -179,6 +219,7 @@ def get_or_create_space(db: Session, technical_identifier: str) -> Space:
             technical_identifier=technical_identifier,
             short_name=short_name,
             status=status,
+            origin=origin,
         )
         db.add(space)
         db.commit()
@@ -210,33 +251,114 @@ def determine_space_status(db: Session, technical_identifier: str, current_statu
     return HubStatus.PENDING
 
 
-def check_repo_access(db: Session, technical_identifier: str) -> bool:
+def _fetch_stored_credential(db: Session, technical_identifier: str) -> str | None:
+    """Looks up and decrypts the credential stored on this identifier's
+    `Space`, if any. Returns `None` if there's no matching space, no stored
+    credential, or the stored ciphertext can't be decrypted (e.g. the
+    encryption key changed since it was stored) -- treated as "no usable
+    credential" rather than an error, so the plain (unauthenticated)
+    `git ls-remote` is still attempted.
+    """
+    space = db.query(Space).filter(Space.technical_identifier == technical_identifier).first()
+    if space is None or not space.encrypted_credential:
+        return None
+    try:
+        return decrypt_credential(space.encrypted_credential)
+    except InvalidToken:
+        return None
+
+
+def _build_askpass_env(credential: str) -> tuple[str, dict[str, str]]:
+    """Writes a short-lived `GIT_ASKPASS` script that echoes the credential
+    from an env var, and returns (script_path, env) for the `git` subprocess.
+
+    Per Design Notes: the token is injected via `GIT_ASKPASS` rather than
+    embedded in the URL or argv, so it never shows up in `ps`/logs. Git
+    invokes the askpass script once per prompt, passing the prompt text as
+    `$1` (e.g. `"Username for 'https://...': "` vs `"Password for
+    'https://...': "`). Conventional HTTPS PAT auth (GitHub/GitLab/
+    Bitbucket) expects a fixed placeholder username and the token as the
+    password, not the token on both prompts -- so the script branches on
+    whether `$1` starts with "Username".
+
+    The caller is responsible for deleting `script_path` once the
+    subprocess exits. If writing/chmod-ing the script itself fails, the
+    partially-created file is cleaned up here before re-raising, so the
+    caller's own cleanup never has to guess whether one exists.
+    """
+    fd, script_path = tempfile.mkstemp(prefix="git-askpass-", suffix=".sh")
+    try:
+        with os.fdopen(fd, "w") as f:
+            f.write(
+                "#!/bin/sh\n"
+                'case "$1" in\n'
+                "  Username*) echo \"x-access-token\" ;;\n"
+                '  *) echo "$REPO_CREDENTIAL_TOKEN" ;;\n'
+                "esac\n"
+            )
+        os.chmod(script_path, stat.S_IRWXU)
+    except OSError:
+        try:
+            os.unlink(script_path)
+        except OSError:
+            pass
+        raise
+
+    env = os.environ.copy()
+    env["GIT_ASKPASS"] = script_path
+    env["REPO_CREDENTIAL_TOKEN"] = credential
+    # Never fall back to an interactive terminal prompt -- a `pending`
+    # (privately inaccessible) repo must fail fast, not hang.
+    env["GIT_TERMINAL_PROMPT"] = "0"
+    return script_path, env
+
+
+def check_repo_access(db: Session | None, technical_identifier: str) -> bool:
     """Determines if the Backend has read access to the repository.
 
-    This verifies read access by attempting to parse the technical identifier
-    and validate the Git remote URL structure. For actual git operations,
-    this would involve attempting a git ls-remote or git clone operation
-    to verify read access.
+    Runs a real `git ls-remote` against the identifier (never blocks the
+    asyncio loop by itself -- callers run this in a threadpool, same as the
+    existing `_process_client_identity` call site). For an `https://`
+    identifier with a stored credential (`db` is not `None`), the decrypted
+    token is injected via `GIT_ASKPASS`. An SSH identifier
+    (`git@host:org/repo`) is always checked without credential injection --
+    out of scope per this revision's "Never" boundary.
 
-    Returns True if the repository identifier is valid and accessible format,
-    False if access cannot be verified or identifier is invalid.
+    Format-validates `technical_identifier` first (`is_valid_technical_identifier`)
+    and returns False immediately on a mismatch, *before* any subprocess is
+    spawned. This is the single choke point every caller goes through
+    (admin POST, WebSocket discovery report, any future one) -- an
+    unvalidated string must never reach `git ls-remote`'s argv: git
+    recognizes remote-helper syntax (e.g. `ext::<command>`) that can
+    execute an arbitrary command, and even a well-formed-looking URL is an
+    SSRF vector against arbitrary hosts if accepted unchecked.
+
+    Returns True if `git ls-remote` succeeds, False otherwise (invalid
+    identifier, unreachable/private repo, or a timeout).
     """
-    # Validate the technical identifier format
-    if not technical_identifier or not isinstance(technical_identifier, str):
+    if not is_valid_technical_identifier(technical_identifier):
         return False
 
-    # Check if it matches expected Git remote URL patterns
-    identifier = technical_identifier.replace(".git", "")
+    askpass_path: str | None = None
+    try:
+        env = None
+        if db is not None and technical_identifier.startswith("https://"):
+            credential = _fetch_stored_credential(db, technical_identifier)
+            if credential:
+                askpass_path, env = _build_askpass_env(credential)
 
-    # GitHub/GitLab/Bitbucket SSH pattern: git@github.com:org/repo or git@github.com:port:org/repo
-    git_ssh_pattern = r"^[a-zA-Z0-9_-]+@[a-zA-Z0-9.-]+:(?:\d+:)?([^/]+)/(.+)$"
-    if re.match(git_ssh_pattern, identifier):
-        return True
-
-    # HTTPS pattern: https://github.com/org/repo or https://gitlab.com/org/repo
-    https_pattern = r"^https?://[a-zA-Z0-9.-]+/([^/]+)/(.+)$"
-    if re.match(https_pattern, identifier):
-        return True
-
-    # If it doesn't match known patterns, we cannot verify access
-    return False
+        result = subprocess.run(
+            ["git", "ls-remote", technical_identifier],
+            env=env,
+            capture_output=True,
+            timeout=_GIT_LS_REMOTE_TIMEOUT_SECONDS,
+        )
+        return result.returncode == 0
+    except (subprocess.TimeoutExpired, OSError):
+        return False
+    finally:
+        if askpass_path:
+            try:
+                os.unlink(askpass_path)
+            except OSError:
+                pass

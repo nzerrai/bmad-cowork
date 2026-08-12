@@ -8,7 +8,7 @@ import enum
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import Enum, String, UniqueConstraint
+from sqlalchemy import Enum, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -37,6 +37,14 @@ class Space(Base):
         default=HubStatus.PENDING,
         nullable=False,
     )
+    # `discovered` (Epic 2 zero-setup onboarding, a Client reports a new
+    # identity) or `manual` (an Admin adds a repo directly). Same `Space`
+    # rows either way -- never a second identity scheme for the same repos.
+    origin: Mapped[str] = mapped_column(String(32), default="discovered", nullable=False)
+    # Fernet-encrypted access token/credential for HTTPS remotes (see
+    # `app/hub/credentials.py`). Never returned in cleartext by the API --
+    # GET responses expose only a computed `has_credential: bool`.
+    encrypted_credential: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         default=lambda: datetime.now(UTC), nullable=False
     )

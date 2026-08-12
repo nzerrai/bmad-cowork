@@ -1,16 +1,19 @@
-"""Hub API router for contributor Git state queries, quality gates verification, and git repos config."""
+"""Hub API router: contributor Git state queries, quality gates verification,
+and the admin Git/Repos config surface."""
+
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
 from app.auth.dependencies import get_current_user
 from app.auth.models import Role, User
 from app.db import SessionLocal
-from app.hub.git_repos_config_models import GitReposConfig
-from app.hub.git_repos_config_service import create_git_repos_config as create_git_repos_config_service
-from app.hub.git_repos_config_service import get_git_repos_config as get_git_repos_config_service
-from app.hub.git_repos_config_service import update_git_repos_config as update_git_repos_config_service
+from app.hub import service as hub_service
+from app.hub.credentials import encrypt_credential
 from app.hub.git_state_service import get_contributor_git_state
+from app.hub.models import HubStatus, Space
 from app.hub.quality_gates_schemas import QualityGatesVerificationOut
 from app.hub.quality_gates_service import verify_quality_gates
 from app.indexing.models import Artifact
@@ -36,8 +39,6 @@ def get_git_state_by_user(user_id: str, db: Session = Depends(get_db), current_u
     Implements AD-008: one stream, one canonical read model.
     Requires authenticated user context.
     """
-    import uuid
-
     try:
         user_uuid = uuid.UUID(user_id)
     except (ValueError, TypeError):
@@ -75,120 +76,159 @@ def get_quality_gates_verification(
     return QualityGatesVerificationOut.model_validate(verification)
 
 
-# Git/Repos Project Configuration endpoints (Story 6.1)
+# Git/Repos Project Configuration endpoints (Story 6.1, revised: multi-repo
+# admin surface unified on the `Space` model -- see spec-6-1-...-2.md)
 
-class GitReposConfigOut:
-    """Git repos configuration response schema."""
+def _space_to_repo_out(space: Space) -> dict:
+    """Serializes a `Space` for the admin repos list/detail responses.
 
-    def __init__(self, config: GitReposConfig):
-        self.project_name = config.project_name
-        self.primary_repo_url = config.primary_repo_url
-        self.backup_repo_url = config.backup_repo_url
-        self.webhook_url = config.webhook_url
-
-
-class GitReposConfigIn:
-    """Git repos configuration request schema."""
-
-    def __init__(self, project_name: str, primary_repo_url: str, backup_repo_url: str | None = None, webhook_url: str | None = None):
-        self.project_name = project_name
-        self.primary_repo_url = primary_repo_url
-        self.backup_repo_url = backup_repo_url
-        self.webhook_url = webhook_url
-
-
-@router.get("/hub/git-repos-config")
-def get_git_repos_config_endpoint(
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-) -> dict:
-    """Get the Git repositories project configuration.
-
-    Requires admin role.
+    Never includes the raw or encrypted credential -- only a computed
+    `has_credential: bool`, per this revision's "Always" boundary.
     """
-    # Check if user has admin role
-    if user.role != Role.ADMIN:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin role required",
-        )
-
-    config = get_git_repos_config_service(db)
-
-    if config is None:
-        # Return default configuration if none exists
-        return {
-            "project_name": "",
-            "primary_repo_url": "",
-            "backup_repo_url": None,
-            "webhook_url": None,
-        }
-
     return {
-        "project_name": config.project_name,
-        "primary_repo_url": config.primary_repo_url,
-        "backup_repo_url": config.backup_repo_url,
-        "webhook_url": config.webhook_url,
+        "id": str(space.id),
+        "technical_identifier": space.technical_identifier,
+        "short_name": space.short_name,
+        "status": space.status.value,
+        "origin": space.origin,
+        "has_credential": bool(space.encrypted_credential),
+        "created_at": space.created_at.isoformat(),
+        "updated_at": space.updated_at.isoformat(),
     }
 
 
-@router.post("/hub/git-repos-config")
-def save_git_repos_config_endpoint(
-    config_in: dict,
+@router.get("/hub/admin/repos")
+def list_admin_repos(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> dict:
-    """Save the Git repositories project configuration.
-
-    Requires admin role.
+    """List every known `Space` (discovered and manually-added), for the
+    System Administration Git/Repos surface. Requires admin role.
     """
-    # Check if user has admin role
     if user.role != Role.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin role required",
         )
 
-    project_name = config_in.get("project_name")
-    primary_repo_url = config_in.get("primary_repo_url")
-    backup_repo_url = config_in.get("backup_repo_url")
-    webhook_url = config_in.get("webhook_url")
+    spaces = db.query(Space).order_by(Space.created_at).all()
+    return {"repos": [_space_to_repo_out(space) for space in spaces]}
 
-    if not project_name or not primary_repo_url:
+
+@router.post("/hub/admin/repos", status_code=status.HTTP_201_CREATED)
+async def add_admin_repo(
+    payload: dict,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    """Adds a repository manually (`origin=manual`). Requires admin role.
+
+    Runs entirely in a threadpool: `get_or_create_space` itself performs
+    the one real `git ls-remote` verification for a newly-created space
+    (via `determine_space_status`) and persists the resolved status.
+    Deliberately does *not* call `check_repo_access` again afterwards --
+    that would both shell out to `git` a second time for the same request
+    and, worse, run the (up to 6s) subprocess synchronously on the
+    event-loop thread, stalling every other request/heartbeat this worker
+    is serving.
+    """
+    if user.role != Role.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin role required",
+        )
+
+    technical_identifier = payload.get("technical_identifier")
+    is_valid = technical_identifier and hub_service.is_valid_technical_identifier(
+        technical_identifier
+    )
+    if not is_valid:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="project_name and primary_repo_url are required",
+            detail="Invalid technical_identifier",
         )
 
-    # Check if config exists
-    config = get_git_repos_config_service(db)
+    space = await run_in_threadpool(
+        hub_service.get_or_create_space, db, technical_identifier, "manual"
+    )
 
-    if config:
-        # Update existing config
-        config = update_git_repos_config_service(
-            db,
-            config,
-            project_name=project_name,
-            primary_repo_url=primary_repo_url,
-            backup_repo_url=backup_repo_url,
-            webhook_url=webhook_url,
-        )
-    else:
-        # Create new config
-        config = create_git_repos_config_service(
-            db,
-            project_name=project_name,
-            primary_repo_url=primary_repo_url,
-            backup_repo_url=backup_repo_url,
-            webhook_url=webhook_url,
+    return _space_to_repo_out(space)
+
+
+@router.patch("/hub/admin/repos/{repo_id}/credential")
+async def set_admin_repo_credential(
+    repo_id: str,
+    payload: dict,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    """Stores an encrypted access credential for a `pending` repo and
+    re-runs the access check. Requires admin role.
+    """
+    if user.role != Role.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin role required",
         )
 
-    return {
-        "project_name": config.project_name,
-        "primary_repo_url": config.primary_repo_url,
-        "backup_repo_url": config.backup_repo_url,
-        "webhook_url": config.webhook_url,
-    }
+    try:
+        space_uuid = uuid.UUID(repo_id)
+    except (ValueError, TypeError):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid repo id",
+        )
+
+    credential = payload.get("credential")
+    if not credential or not isinstance(credential, str):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="credential is required",
+        )
+    if "\n" in credential or "\r" in credential:
+        # GIT_ASKPASS's protocol only reads the first line the askpass
+        # script outputs -- an embedded newline would be silently
+        # truncated at use time, corrupting the effective token with no
+        # error surfaced. Reject at storage time instead of failing later
+        # with no explanation.
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="credential must not contain newlines",
+        )
+
+    space = db.query(Space).filter(Space.id == space_uuid).first()
+    if space is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Repo not found",
+        )
+
+    # Credential injection is HTTPS-only (this revision's "Never" boundary
+    # scopes credential support to HTTPS; `check_repo_access` only injects
+    # for identifiers starting with `https://`) -- reject storing one for
+    # anything else (SSH, or a bare `http://` identifier that would
+    # otherwise be accepted here but silently never unblock, since it can
+    # never satisfy that injection condition).
+    if not space.technical_identifier.startswith("https://"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Credential not applicable to this repo (HTTPS only)",
+        )
+
+    space.encrypted_credential = encrypt_credential(credential)
+    db.commit()
+    db.refresh(space)
+
+    # Re-verify access with the newly-stored credential; a still-refused
+    # access leaves the space `pending` (never a direct jump to `active`).
+    has_access = await run_in_threadpool(
+        hub_service.check_repo_access, db, space.technical_identifier
+    )
+    space.status = HubStatus.ACTIVE if has_access else HubStatus.PENDING
+    db.commit()
+    db.refresh(space)
+
+    return _space_to_repo_out(space)
 
 
 # Git State Report HTTP Endpoint (VS Code Extension)

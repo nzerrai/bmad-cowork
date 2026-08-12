@@ -11,6 +11,7 @@ from app.hub.service import (
     detect_git_provider,
     generate_access_grant_link,
     get_or_create_space,
+    is_valid_technical_identifier,
 )
 
 __all__ = [
@@ -23,4 +24,5 @@ __all__ = [
     "get_contributor_git_state",
     "get_or_create_space",
     "is_contributor_active",
+    "is_valid_technical_identifier",
 ]
