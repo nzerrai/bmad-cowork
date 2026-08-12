@@ -208,8 +208,10 @@ export function getWebviewContent(webview: vscode.Webview, extensionUri: vscode.
 	</div>
 
 	<script>
+		const vscode = acquireVsCodeApi();
+
 		// Handle messages from VS Code extension
-		vscode.addEventListener('message', event => {
+		window.addEventListener('message', event => {
 			const message = event.data;
 
 			switch (message.command) {
